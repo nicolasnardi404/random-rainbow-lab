@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Effects - Interactive 3D Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #debug-panel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+        }
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        #instructions h3 {
+            margin: 0 0 10px 0;
+            color: #00ffff;
+        }
+        .hand-control {
+            margin-bottom: 15px;
+        }
+        #video {
+            display: none;
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            width: 160px;
+            height: 120px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+        .show-video #video {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <video id="video" playsinline></video>
+    <div id="debug-panel">
+        <div id="fps"></div>
+        <div id="hands-count"></div>
+        <div id="current-effect"></div>
+        <div id="controls"></div>
+    </div>
+    <div id="instructions">
+        <h3>Hand Controls</h3>
+        <div class="hand-control">
+            <strong>Right Hand:</strong><br>
+            • Move hand to position the effect<br>
+            • Pinch (thumb to index) to control size
+        </div>
+        <div class="hand-control">
+            <strong>Left Hand:</strong><br>
+            • Move left/right to change colors<br>
+            • Movement speed controls energy level
+        </div>
+        <div class="hand-control">
+            <strong>Keyboard:</strong><br>
+            • Press SPACE to change effects<br>
+            • Press 'D' to toggle debug info
+        </div>
+    </div>
+    <script src="sketch.js"></script>
+</body>
+</html> 
