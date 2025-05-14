@@ -8,6 +8,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <!-- Background assets -->
+    <script src="assets/backgrounds/shaders.js"></script>
+    <script src="assets/backgrounds/image_info.js"></script>
     <style>
         body {
             margin: 0;
@@ -143,6 +146,93 @@
         #video-container {
             display: none;
         }
+        
+        /* Background control styles */
+        #bg-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #00ffff;
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+        #bg-control h3 {
+            margin: 0 0 10px 0;
+            color: #00ffff;
+            font-size: 16px;
+            text-align: center;
+        }
+        .bg-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .bg-button {
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .bg-button:hover {
+            background: rgba(0, 255, 255, 0.3);
+            border-color: #00ffff;
+        }
+        .bg-button.active {
+            background: rgba(0, 255, 255, 0.5);
+            border-color: #00ffff;
+            font-weight: bold;
+        }
+        .bg-select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 5px;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        #bg-upload {
+            display: none;
+        }
+        #bg-upload-label {
+            display: block;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: black;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin: 5px 0;
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #bg-upload-label:hover {
+            transform: scale(1.05);
+        }
+        .color-pickers {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .color-picker {
+            width: 25px;
+            height: 25px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0;
+        }
     </style>
 </head>
 <body class="show-video">
@@ -152,6 +242,28 @@
         <button id="video-toggle">Hide</button>
     </div>
     <button id="persistent-toggle">Show Camera</button>
+    
+    <div id="bg-control">
+        <h3>Background</h3>
+        <div class="bg-buttons">
+            <button class="bg-button active" data-mode="0">Shader</button>
+            <button class="bg-button" data-mode="1">Image</button>
+            <button class="bg-button" data-mode="2">Video</button>
+            <button class="bg-button" data-mode="3">Custom</button>
+        </div>
+        
+        <select id="bg-select" class="bg-select"></select>
+        
+        <input type="file" id="bg-upload" accept="image/*,video/*">
+        <label for="bg-upload" id="bg-upload-label">Upload Custom Background</label>
+        
+        <div class="color-pickers">
+            <input type="color" class="color-picker" id="color1" value="#ff00ff">
+            <input type="color" class="color-picker" id="color2" value="#00ffff">
+            <input type="color" class="color-picker" id="color3" value="#ffff00">
+        </div>
+    </div>
+    
     <div id="debug-panel">
         <div id="fps"></div>
         <div id="hands-count"></div>
@@ -192,6 +304,111 @@
     </div>
     
     <script>
+    // Background control setup
+    document.addEventListener('DOMContentLoaded', function() {
+        const bgButtons = document.querySelectorAll('.bg-button');
+        const bgSelect = document.getElementById('bg-select');
+        const bgUpload = document.getElementById('bg-upload');
+        const colorPickers = document.querySelectorAll('.color-picker');
+        
+        // Set up the select options based on mode
+        function updateBgSelectOptions(mode) {
+            bgSelect.innerHTML = '';
+            
+            // Different options based on mode
+            if (mode === 0) { // Shader
+                SHADER_NAMES.forEach((name, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = name;
+                    bgSelect.appendChild(option);
+                });
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.style.display = 'block';
+                });
+            } else if (mode === 1) { // Image
+                BACKGROUND_IMAGE_SOURCES.forEach((img, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = img.name;
+                    bgSelect.appendChild(option);
+                });
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.style.display = 'none';
+                });
+            } else if (mode === 2) { // Video
+                BACKGROUND_VIDEO_SOURCES.forEach((video, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = video.name;
+                    bgSelect.appendChild(option);
+                });
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.style.display = 'none';
+                });
+            }
+            
+            // Show/hide upload based on mode
+            document.getElementById('bg-upload-label').style.display = mode === 3 ? 'block' : 'none';
+            
+            // Update window variables to communicate with p5js
+            window.selectedBackgroundMode = mode;
+            window.selectedBackground = 0;
+        }
+        
+        // Handle background type buttons
+        bgButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active state
+                bgButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Get mode and update options
+                const mode = parseInt(this.dataset.mode);
+                updateBgSelectOptions(mode);
+            });
+        });
+        
+        // Handle background selection change
+        bgSelect.addEventListener('change', function() {
+            window.selectedBackground = parseInt(this.value);
+        });
+        
+        // Handle file upload
+        bgUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                window.customBackgroundURL = url;
+                window.customBackgroundType = file.type.startsWith('video/') ? 'video' : 'image';
+            }
+        });
+        
+        // Handle color pickers
+        colorPickers.forEach((picker, index) => {
+            picker.addEventListener('input', function() {
+                const hex = this.value;
+                // Convert hex to RGB
+                const r = parseInt(hex.slice(1, 3), 16) / 255;
+                const g = parseInt(hex.slice(3, 5), 16) / 255;
+                const b = parseInt(hex.slice(5, 7), 16) / 255;
+                
+                // Set global color variables for shaders
+                if (index === 0) window.shaderColor1 = [r, g, b];
+                if (index === 1) window.shaderColor2 = [r, g, b];
+                if (index === 2) window.shaderColor3 = [r, g, b];
+            });
+        });
+        
+        // Initialize with shader mode
+        updateBgSelectOptions(0);
+        
+        // Set initial colors
+        window.shaderColor1 = [1, 0, 1]; // Pink
+        window.shaderColor2 = [0, 1, 1]; // Cyan
+        window.shaderColor3 = [1, 1, 0]; // Yellow
+    });
+    
     // Debug helper for camera access and hands visualization
     document.addEventListener('DOMContentLoaded', function() {
         console.log("DOM loaded, initializing camera checks");
@@ -338,5 +555,6 @@
     </script>
     
     <script src="sketch.js"></script>
+    <script src="assets/backgrounds/ui-handler.js"></script>
 </body>
 </html> 

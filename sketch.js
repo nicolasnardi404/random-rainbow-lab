@@ -22,6 +22,25 @@ let handRotation = 0;
 let prevHandRotation = 0;
 let rotationSpeed = 0;
 
+// Background parameters
+let currentBackground = 0;
+let backgroundMode = 0; // 0: shader, 1: image, 2: video, 3: user upload
+const BACKGROUND_MODES = ["Shader", "Image", "Video", "Custom"];
+let backgroundImages = [];
+let backgroundVideos = [];
+let userBackground = null;
+let backgroundShaders = [];
+let currentShader = 0;
+const SHADER_NAMES = [
+  "Cyberpunk Grid",
+  "Nebula Flow",
+  "Matrix Rain",
+  "Liquid RGB",
+  "Fractal Noise",
+];
+let shaderTime = 0;
+let bgSelectBtn;
+
 // Effect modes
 let currentEffect = 0;
 const CRYSTAL_EFFECT = 0;
@@ -59,6 +78,13 @@ const NUM_PARTICLES = 300;
 
 // Create webcam capture for effects
 let capture;
+
+// Add background-related variables
+let shaders = [];
+let bgImages = [];
+let bgVideos = [];
+let customBg;
+let customBgType;
 
 function setupMediaPipe() {
   console.log("Setting up MediaPipe...");
@@ -234,6 +260,9 @@ function setup() {
     });
   }
 
+  // Initialize backgrounds
+  initBackgrounds();
+
   // Wait a small delay to ensure DOM is fully ready
   setTimeout(() => {
     setupMediaPipe();
@@ -248,8 +277,61 @@ function setup() {
   }, 1000);
 }
 
+function initBackgrounds() {
+  // Initialize shaders from the SHADER_SOURCES object
+  const shaderSourceKeys = Object.keys(SHADER_SOURCES);
+
+  for (let key of shaderSourceKeys) {
+    const newShader = createShader(
+      // Simple pass-through vertex shader
+      `
+      attribute vec3 aPosition;
+      attribute vec2 aTexCoord;
+      
+      varying vec2 vTexCoord;
+      
+      void main() {
+        vTexCoord = aTexCoord;
+        vec4 positionVec4 = vec4(aPosition, 1.0);
+        positionVec4.xy = positionVec4.xy * 2.0 - 1.0;
+        gl_Position = positionVec4;
+      }
+      `,
+      // Fragment shader from our sources
+      SHADER_SOURCES[key]
+    );
+
+    shaders.push(newShader);
+  }
+
+  // Load background images
+  BACKGROUND_IMAGE_SOURCES.forEach((source) => {
+    loadImage(
+      source.url,
+      (img) => {
+        bgImages.push(img);
+      },
+      (error) => {
+        console.error("Error loading background image:", error);
+        // Add a placeholder if image failed to load
+        bgImages.push(createGraphics(100, 100));
+      }
+    );
+  });
+
+  // Load background videos
+  BACKGROUND_VIDEO_SOURCES.forEach((source) => {
+    const vid = createVideo(source.url);
+    vid.hide();
+    vid.loop();
+    vid.volume(0);
+    bgVideos.push(vid);
+  });
+}
+
 function draw() {
-  background(0);
+  // Draw background before anything else
+  drawBackground();
 
   // Update rotation
   rotationAngle += 0.01;
@@ -324,6 +406,101 @@ function draw() {
 
     // Draw the current effect
     drawCurrentEffect();
+  }
+}
+
+function drawBackground() {
+  // Get the background mode and index from window globals (set by UI)
+  const mode =
+    window.selectedBackgroundMode !== undefined
+      ? window.selectedBackgroundMode
+      : backgroundMode;
+  const index =
+    window.selectedBackground !== undefined
+      ? window.selectedBackground
+      : currentBackground;
+
+  // Save shader time
+  shaderTime += 0.01;
+
+  push();
+  // Reset any transformations so background fills screen
+  resetMatrix();
+
+  // Handle different background types
+  if (mode === 0) {
+    // Shader
+    if (shaders.length > 0 && index < shaders.length) {
+      shader(shaders[index]);
+
+      // Set shader uniforms
+      const thisShader = shaders[index];
+      thisShader.setUniform("u_resolution", [width, height]);
+      thisShader.setUniform("u_time", shaderTime);
+
+      // Set colors from UI
+      if (window.shaderColor1)
+        thisShader.setUniform("u_color1", window.shaderColor1);
+      if (window.shaderColor2)
+        thisShader.setUniform("u_color2", window.shaderColor2);
+      if (window.shaderColor3)
+        thisShader.setUniform("u_color3", window.shaderColor3);
+
+      // Draw shader as full-screen rectangle
+      rect(0, 0, width, height);
+      resetShader();
+    }
+  } else if (mode === 1) {
+    // Image
+    if (bgImages.length > 0 && index < bgImages.length) {
+      texture(bgImages[index]);
+      rect(0, 0, width, height);
+    }
+  } else if (mode === 2) {
+    // Video
+    if (bgVideos.length > 0 && index < bgVideos.length) {
+      texture(bgVideos[index]);
+      rect(0, 0, width, height);
+    }
+  } else if (mode === 3) {
+    // Custom upload
+    handleCustomBackground();
+  }
+
+  pop();
+}
+
+function handleCustomBackground() {
+  // Check if there's a custom background URL
+  if (window.customBackgroundURL) {
+    const url = window.customBackgroundURL;
+    const type = window.customBackgroundType;
+
+    if (!customBg) {
+      // Create the custom background
+      if (type === "image") {
+        loadImage(url, (img) => {
+          customBg = img;
+          customBgType = "image";
+        });
+      } else if (type === "video") {
+        customBg = createVideo(url);
+        customBg.loop();
+        customBg.hide();
+        customBg.volume(0);
+        customBgType = "video";
+      }
+
+      // Reset the URL so we don't reload on each frame
+      window.customBackgroundURL = null;
+    } else if (
+      customBgType === "image" ||
+      (customBgType === "video" && customBg.loadedmetadata)
+    ) {
+      // Draw the custom background
+      texture(customBg);
+      rect(0, 0, width, height);
+    }
   }
 }
 
