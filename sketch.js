@@ -18,6 +18,9 @@ let colorShift = 0;
 let effectScale = 200;
 let globalScale = 1.0;
 let energyLevel = 0;
+let handRotation = 0;
+let prevHandRotation = 0;
+let rotationSpeed = 0;
 
 // Effect modes
 let currentEffect = 0;
@@ -147,6 +150,28 @@ function onResults(results) {
         );
       });
       hands.push(handPoints);
+
+      // Calculate hand rotation for the first hand (controlling size)
+      if (index === 0) {
+        // Store previous rotation for calculating rotation speed
+        prevHandRotation = handRotation;
+
+        // Get wrist and thumb points
+        const wrist = handPoints[0];
+        const thumb = handPoints[1];
+
+        // Calculate angle between wrist and thumb in the XY plane
+        const angleRadians = Math.atan2(thumb.y - wrist.y, thumb.x - wrist.x);
+        handRotation = angleRadians;
+
+        // Calculate rotation speed (how fast the hand is rotating)
+        let rotationDiff = handRotation - prevHandRotation;
+        // Handle angle wrap-around
+        if (rotationDiff > Math.PI) rotationDiff -= TWO_PI;
+        if (rotationDiff < -Math.PI) rotationDiff += TWO_PI;
+
+        rotationSpeed = lerp(rotationSpeed, rotationDiff * 10, 0.2);
+      }
     });
   }
 }
@@ -244,7 +269,6 @@ function draw() {
     rotateX(rotationAngle * 0.5);
 
     // Change effects automatically when no hands detected
-    // Comment out this automatic effect change
     /*
     if (frameCount % 300 === 0) {
       currentEffect = (currentEffect + 1) % totalEffects;
@@ -468,23 +492,29 @@ function drawMirrorKaleidoscope() {
 function drawPixelDisplace() {
   push();
   if (capture.loadedmetadata) {
-    let pSize = pixelSize * (1 + energyLevel * 2);
+    // Make pixel size more responsive to hand movements and use effectScale
+    let pSize = pixelSize * (1 + energyLevel * 2) * (effectScale / 200);
+    let displacementAmount = 50 * (1 + energyLevel * 2); // Displacement based on energy
+
+    // Use effectScale to control the coverage area
     let aspectRatio = capture.height / capture.width;
-    let w = width;
-    let h = width * aspectRatio;
+    let w = effectScale * 1.5; // Scale the effect area with hand movement
+    let h = w * aspectRatio;
 
     // Create pixelated and displaced version
     for (let x = -w / 2; x < w / 2; x += pSize) {
       for (let y = -h / 2; y < h / 2; y += pSize) {
-        let xOff = sin(frameCount * 0.05 + y * 0.1) * energyLevel * 50;
-        let yOff = cos(frameCount * 0.05 + x * 0.1) * energyLevel * 50;
+        // Make displacement more sensitive to hand movement
+        let xOff = sin(frameCount * 0.05 + y * 0.1) * displacementAmount;
+        let yOff = cos(frameCount * 0.05 + x * 0.1) * displacementAmount;
 
-        let col = color((x + colorShift) % 255, 255, 255, 200);
+        // Use colorShift more effectively
+        let col = color((colorShift + x + y) % 255, 255, 255, 200);
         fill(col);
         noStroke();
 
         push();
-        translate(x + xOff, y + yOff, 0);
+        translate(x + xOff, y + yOff, (x + y) * 0.1 * energyLevel); // Add Z-axis displacement
 
         // Sample webcam texture
         texture(capture);
@@ -502,7 +532,10 @@ function drawParticleStorm() {
   noStroke();
 
   if (capture.loadedmetadata) {
-    // Create attraction points from hands
+    // Scale the effect with effectScale
+    let effectRadius = effectScale;
+
+    // Create stronger attraction points from hands
     let attractors = [];
     if (hands.length > 0) {
       hands.forEach((hand) => {
@@ -511,42 +544,52 @@ function drawParticleStorm() {
             pos: createVector(
               map(point.x, 0, width, -width / 2, width / 2),
               map(point.y, 0, height, -height / 2, height / 2),
-              point.z * 100
+              point.z * 200 // Increase Z influence
             ),
-            strength: energyLevel * 2,
+            strength: 2 + energyLevel * 5, // Greatly increase attractor strength
           });
         });
       });
+    } else {
+      // Add default attractor at center if no hands
+      attractors.push({
+        pos: createVector(0, 0, 0),
+        strength: 0.5,
+      });
     }
 
-    // Update and draw particles
+    // Update and draw particles with more responsiveness
     particles.forEach((particle) => {
-      // Apply forces from attractors
+      // Apply stronger forces from attractors
       attractors.forEach((attractor) => {
         let force = p5.Vector.sub(attractor.pos, particle.pos);
         let distance = force.mag();
+        if (distance < 0.1) distance = 0.1; // Prevent division by zero
+
         force.normalize();
-        // Inverse square law with minimum distance
+        // Stronger inverse square law with higher minimum value
         let strength = constrain(
-          attractor.strength / (distance * distance),
+          attractor.strength / (distance * distance * 0.5),
           0,
-          0.5
+          2.0 // Higher maximum force
         );
-        force.mult(strength * 50);
+        force.mult(strength * 100); // Increase force multiplier
         particle.vel.add(force);
       });
 
-      // Add some chaos based on energy level
-      particle.vel.add(p5.Vector.random3D().mult(energyLevel * 0.5));
+      // Add more chaos based on energy level
+      particle.vel.add(p5.Vector.random3D().mult(energyLevel * 2.0));
 
-      // Update position
+      // Update position with higher responsiveness
       particle.pos.add(particle.vel);
-      particle.vel.mult(0.95); // Damping
+      particle.vel.mult(0.92); // Less damping for more active motion
 
-      // Wrap around edges
-      particle.pos.x = ((particle.pos.x + width / 2) % width) - width / 2;
-      particle.pos.y = ((particle.pos.y + height / 2) % height) - height / 2;
-      particle.pos.z = ((particle.pos.z + 200) % 400) - 200;
+      // Constrain particles to a sphere with radius based on effectScale
+      let pos = particle.pos;
+      let mag = pos.mag();
+      if (mag > effectRadius) {
+        pos.mult(effectRadius / mag);
+      }
 
       // Draw particle with webcam texture
       push();
@@ -556,30 +599,32 @@ function drawParticleStorm() {
       let u = map(particle.pos.x, -width / 2, width / 2, 0, 1);
       let v = map(particle.pos.y, -height / 2, height / 2, 0, 1);
 
-      // Mix webcam color with particle color
+      // Mix webcam color with particle color - make colors more vibrant
       let speed = particle.vel.mag();
-      let bright = map(speed, 0, 10, 100, 255);
-      let hue = (particle.hue + colorShift) % 255;
+      let bright = map(speed, 0, 20, 100, 255);
+      // Use colorShift more effectively
+      let hue = (particle.hue + colorShift + frameCount * 0.5) % 255;
 
       // Apply color tint to the texture
       tint(hue, 255, bright, 200);
 
-      // Create a textured quad for each particle
-      let pSize = particle.size * (1 + speed * 0.1);
+      // Scale the particle size with effectScale
+      let pSize = particle.size * (1 + speed * 0.2) * (effectScale / 200);
       textureMode(NORMAL);
       texture(capture);
 
-      // Rotate particle to face camera
-      let angle = frameCount * 0.02 + particle.hue * 0.01;
+      // Rotate particle to face camera - more rotation with energy
+      let angle =
+        frameCount * (0.02 + energyLevel * 0.05) + particle.hue * 0.01;
       rotateX(angle);
-      rotateY(angle);
+      rotateY(angle * 1.5);
 
       // Draw textured particle
       beginShape(QUADS);
       vertex(-pSize, -pSize, 0, u, v);
-      vertex(pSize, -pSize, 0, u + 0.1, v);
-      vertex(pSize, pSize, 0, u + 0.1, v + 0.1);
-      vertex(-pSize, pSize, 0, u, v + 0.1);
+      vertex(pSize, -pSize, 0, u + 0.2, v);
+      vertex(pSize, pSize, 0, u + 0.2, v + 0.2);
+      vertex(-pSize, pSize, 0, u, v + 0.2);
       endShape();
 
       pop();
@@ -590,7 +635,12 @@ function drawParticleStorm() {
 
 function drawCurrentEffect() {
   push();
-  rotateY(rotationAngle);
+
+  // Use hand rotation to control rotation of effects
+  // Base rotation on both automatic rotation angle and hand rotation
+  rotateY(rotationAngle + handRotation);
+  rotateX(sin(handRotation) * PI * 0.3);
+  rotateZ(rotationSpeed);
 
   switch (currentEffect) {
     case CRYSTAL_EFFECT:
@@ -658,7 +708,9 @@ function updateDebugPanel() {
     controlsDiv.innerHTML = `
       Scale: ${Math.round(effectScale)}<br>
       Energy: ${Math.round(energyLevel * 100)}%<br>
-      Color: ${Math.round((colorShift / 255) * 360)}°
+      Color: ${Math.round((colorShift / 255) * 360)}°<br>
+      Hand Rotation: ${Math.round((handRotation / TWO_PI) * 360)}°<br>
+      Rotation Speed: ${Math.abs(rotationSpeed).toFixed(2)}
     `;
   } catch (err) {
     console.error("Error updating debug panel:", err);
@@ -669,14 +721,42 @@ function keyPressed() {
   if (key === "d" || key === "D") {
     debugMode = !debugMode;
     const debugPanel = document.getElementById("debug-panel");
-    debugPanel.style.display = debugMode ? "block" : "none";
+    if (debugPanel) {
+      debugPanel.style.display = debugMode ? "block" : "none";
+    }
   } else if (key === " ") {
-    // Change effect on spacebar press
+    // Change effect on spacebar press with better feedback
     currentEffect = (currentEffect + 1) % totalEffects;
-    console.log(
-      "Effect changed to:",
-      ["Crystal", "Nebula", "Vortex"][currentEffect]
-    );
+
+    // Show effect change notification
+    const effectNames = [
+      "Crystal Effect",
+      "Nebula Effect",
+      "Vortex Effect",
+      "Galaxy Effect",
+      "Fireflies Effect",
+      "Mirror Kaleidoscope",
+      "Pixel Displace",
+      "Particle Storm",
+    ];
+
+    console.log("Effect changed to:", effectNames[currentEffect]);
+
+    // Visual feedback for effect change
+    const notification = createDiv(`Effect: ${effectNames[currentEffect]}`);
+    notification.position(width / 2 - 100, 50);
+    notification.style("background-color", "rgba(0,0,0,0.7)");
+    notification.style("color", "white");
+    notification.style("padding", "10px 20px");
+    notification.style("border-radius", "5px");
+    notification.style("font-size", "16px");
+    notification.style("z-index", "2000");
+    notification.style("text-align", "center");
+
+    // Remove after 2 seconds
+    setTimeout(() => {
+      notification.remove();
+    }, 2000);
   } else if (key === "r" || key === "R") {
     // Toggle recording with 'r' key
     toggleRecording();
