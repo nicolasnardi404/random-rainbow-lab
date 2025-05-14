@@ -3,182 +3,444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Motion Controller - Interactive Visual Experience</title>
+    <title>RANDOM RAINBOW LAB - Cyberdelic Hand Controller</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: 'VT323', monospace;
+            background-color: #000;
             color: #fff;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;    
+            overflow-x: hidden;
             text-align: center;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 900px;
-            padding: 40px 20px;
-            animation: fadeIn 1s ease-in;
-        }
-        h1 {
-            font-size: 3.2rem;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #00ffff, #ff00ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-        }
-        h2 {
-            font-size: 1.8rem;
-            font-weight: 300;
-            margin-bottom: 30px;
-            color: #ccccff;
-        }
-        p {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            max-width: 700px;
-        }
-        .features {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            margin: 40px 0;
-        }
-        .feature {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
-            padding: 20px;
-            width: 250px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .feature:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        }
-        .feature h3 {
-            color: #00ffff;
-            margin-top: 0;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(45deg, #ff00ff, #00ffff);
-            color: white;
-            font-size: 1.3rem;
-            font-weight: bold;
-            text-decoration: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            margin-top: 20px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        .cta-button:hover {
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-        .requirements {
-            margin-top: 40px;
-            font-size: 0.9rem;
-            color: #aaa;
-            max-width: 600px;
+            line-height: 1.4;
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
         }
         
-        /* Particles animation in background */
-        .particles {
+        .noise {
             position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.1;
+            z-index: 1;
+            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAAAXNSR0IArs4c6QAABBlJREFUaEPtmttx2zAQRQ+UiSpQKlAqsDtQOpA7iDqIO5A7sCuwO7A6sDuwOzDzQBnKA8kbkuAuHhLpiV8yM5wR+Vi7F7vALgCt4rjH6Wv0/iFG3+sNr9W9WpXv+h2Jyx5RA+AMwNnw2QAYRoBFASRuDxtpb3KNwQ7rHsA+iRsqUBSQxO3Fz4bfANweKBQFJHG7K2JgBChrZ3fX/QxAIqo0ECgnC8BxJsX6m6vFz1RAEreX9jUAdtK9KSBxDBD+V8Ach5NlKiBxfNdlqvNnF4hbAFfAmfOTSLr5dxLHmXkA8FtpjYJ8g8TtojYuBpqUk9ZQtLuLY7L1G8CTD0ziJgZ/AXAjQbh63yGiIPo4cTx7fxDKlZhOYtZ4HgOSuJWOLVV3OvuxQDwnbrmxEwYAzJtOwXoAlNkVxiTuz7BQZKRqAY0CkrgdCG1QKDA2kMQ9wf0o8jKzB0B6XdWwgSTutQ/lQEcDSdxuIPLTD2c0CBiMThpWzZsaxPQgEUyMURE+jQaSuBfY0Wo9p6XdaCC12Y8HIJYnvdWrDUjidjv7XLiWIyplA4QTJ3LG7M/RLtTRQBJ3Ypa5TgcykVsLIKl7JVXNZwOR0tsdEwLpuYwKDTIaiJZqsxvHJyCSABqo6cZodgGM2yBT09N4HlZDN1fxj1ZkEkYcELNDxTZH3iBtR4kEYpmtPveFgHRlr35PVwN01a9fZsUCYc2R+2YVXBkbqm1mqjZxqvbVrSVgaTv35kM2SGFGLx88Ey7/6MgNvWsNNrq2lVU8Q4BQNr4B4G8V2vAIcNGcEEvmxHkGsYLEMDuaOr1t+WjzZNIauS6tjQPCQtKX2OYC3wPAexIXVpMYoWmCWORmBkF4dq77rlXWGhQ9GQcLHJDsO/oGDK3GAlKxJFJfDdJVbYG05k1KqU2Q2gvECqRntVrVqaVaEJKJ+TRCNpCu6rlAOu+PAaJeHxNIZ9qcqr0YsXcNXRvnmcP7RvVZYQ0I68RWEK25uiJVA7BoZHAQPiMEiE9zJXTzEsQXQ/8mf+eDTNUg+IyuyFa1l/ZUy3HdKqXmrZbVtCbdajCGVmVdFNvVF0SsJ88+IBGtfZArJC1aawGJClK0rjQT85JOLYiuAXA2rSUFsS6+Yf0PgLR+kRKEX6XsVsuqTrlBuKetdNL2QZ5qCwxSkHfVWm6QxpxybLfmtjXNYrF97EawtNYcoFcWxGeX16jRArLLvjJJbZzpWK0LCmJZX3T6WEDMKxQlCJsRMkVoZZGnGrFGgwTxubaO9xFkCu8Dxrw8+2bHi9mj2y3hfsD6ZsEKksbR5xNdvgXJORjZ5dJV7YFsHUXHl68lCHk2m87l2QXi7cQnDqL9BXE2LofoVXeKAAAAAElFTkSuQmCC");
+        }
+        
+        .vhs-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+        }
+        
+        .vhs-flicker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+            opacity: 0;
+            background: rgba(255, 0, 255, 0.03);
+            animation: flicker 0.3s infinite;
+        }
+        
+        .glitch-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            letter-spacing: -2px;
+            text-transform: uppercase;
+            text-shadow: 
+                2px 2px 0 #ff00ff,
+                -2px -2px 0 #00ffff;
+            margin-bottom: 0;
+            animation: textFlicker 0.08s infinite;
+            position: relative;
+        }
+        
+        h1::before, h1::after {
+            content: "RANDOM RAINBOW LAB";
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
         }
-        .particle {
+        
+        h1::before {
+            color: #ff00ff;
+            animation: glitch1 1.5s infinite;
+        }
+        
+        h1::after {
+            color: #00ffff;
+            animation: glitch2 2s infinite;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            background: linear-gradient(to right, #ff00ff, #00ffff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-top: 0;
+            animation: rainbow 3s infinite;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 5;
+        }
+        
+        .crt-frame {
+            position: relative;
+            border: 10px solid #333;
+            border-radius: 20px;
+            box-shadow: 
+                0 0 0 10px #111,
+                0 0 30px rgba(0, 255, 255, 0.5),
+                inset 0 0 30px rgba(0, 0, 0, 0.7);
+            background: #000;
+            margin: 30px auto;
+            padding: 20px;
+            max-width: 800px;
+            overflow: hidden;
+        }
+        
+        .crt-frame::before {
+            content: "";
             position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.5);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(
+                    rgba(255, 255, 255, 0.1),
+                    rgba(255, 255, 255, 0.1) 50%,
+                    rgba(0, 0, 0, 0.1) 50%,
+                    rgba(0, 0, 0, 0.1)
+                );
+            background-size: 100% 4px;
             pointer-events: none;
-            animation: float 15s infinite linear;
+            z-index: 2;
         }
-        @keyframes float {
-            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-100vh) translateX(100px) rotate(360deg); opacity: 0; }
+        
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        
+        .feature {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            width: 250px;
+            box-shadow: 
+                0 0 0 1px #00ffff,
+                0 0 10px rgba(0, 255, 255, 0.5),
+                inset 0 0 20px rgba(0, 255, 255, 0.2);
+            transform: perspective(500px) rotateX(5deg);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature:hover {
+            transform: perspective(500px) rotateX(5deg) scale(1.05);
+            box-shadow: 
+                0 0 0 1px #ff00ff,
+                0 0 20px rgba(255, 0, 255, 0.7),
+                inset 0 0 30px rgba(255, 0, 255, 0.3);
+        }
+        
+        .feature::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -100%;
+            width: 50%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(30deg);
+            transition: all 0.5s;
+        }
+        
+        .feature:hover::before {
+            left: 120%;
+        }
+        
+        .feature h3 {
+            color: #ff00ff;
+            margin-top: 0;
+            text-shadow: 0 0 5px #ff00ff;
+            font-size: 1.5rem;
+        }
+        
+        .feature p {
+            color: #e0e0e0;
+            font-size: 1.1rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: #111;
+            font-size: 2rem;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 15px 40px;
+            border: 2px solid #fff;
+            box-shadow: 
+                0 0 15px rgba(255, 0, 255, 0.7),
+                0 0 15px rgba(0, 255, 255, 0.7);
+            margin-top: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            text-shadow: none;
+            text-transform: uppercase;
+            overflow: hidden;
+            transition: all 0.2s;
+            animation: buttonGlow 2s infinite alternate;
+        }
+        
+        .cta-button:hover {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            transform: scale(1.05);
+            box-shadow: 
+                0 0 30px rgba(255, 0, 255, 0.9),
+                0 0 30px rgba(0, 255, 255, 0.9);
+        }
+        
+        .cta-button::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -100%;
+            width: 50%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(30deg);
+            transition: all 0.5s;
+        }
+        
+        .cta-button:hover::before {
+            left: 120%;
+        }
+        
+        .requirements {
+            font-size: 1rem;
+            color: #888;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 10px;
+            border: 1px dashed #444;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            z-index: 4;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                transparent 100%
+            );
+            opacity: 0.8;
+            pointer-events: none;
+            animation: scanline 10s linear infinite;
+        }
+        
+        @keyframes scanline {
+            0% { top: -100px; }
+            100% { top: 100%; }
+        }
+        
+        @keyframes glitch1 {
+            0% { transform: translate(0); }
+            20% { transform: translate(-3px, 3px); }
+            40% { transform: translate(-3px, -3px); }
+            60% { transform: translate(3px, 3px); }
+            80% { transform: translate(3px, -3px); }
+            100% { transform: translate(0); }
+        }
+        
+        @keyframes glitch2 {
+            0% { transform: translate(0); }
+            20% { transform: translate(3px, -3px); }
+            40% { transform: translate(3px, 3px); }
+            60% { transform: translate(-3px, -3px); }
+            80% { transform: translate(-3px, 3px); }
+            100% { transform: translate(0); }
+        }
+        
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+        
+        @keyframes flicker {
+            0% { opacity: 0; }
+            5% { opacity: 0.1; }
+            10% { opacity: 0; }
+            15% { opacity: 0.1; }
+            20% { opacity: 0; }
+            30% { opacity: 0; }
+            40% { opacity: 0.1; }
+            50% { opacity: 0; }
+            100% { opacity: 0; }
+        }
+        
+        @keyframes textFlicker {
+            0% { opacity: 1; }
+            1% { opacity: 0.95; }
+            2% { opacity: 1; }
+            3% { opacity: 0.95; }
+            4% { opacity: 1; }
+            50% { opacity: 1; }
+            51% { opacity: 0.95; }
+            52% { opacity: 1; }
+            53% { opacity: 0.95; }
+            54% { opacity: 1; }
+            100% { opacity: 1; }
+        }
+        
+        @keyframes buttonGlow {
+            0% { box-shadow: 0 0 10px rgba(255, 0, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.5); }
+            100% { box-shadow: 0 0 25px rgba(255, 0, 255, 0.8), 0 0 25px rgba(0, 255, 255, 0.8); }
         }
     </style>
 </head>
 <body>
-    <div class="particles" id="particles"></div>
+    <div class="noise"></div>
+    <div class="vhs-effect"></div>
+    <div class="vhs-flicker"></div>
+    <div class="scanline"></div>
+    
     <div class="container">
-        <h1>Hand Motion Controller</h1>
-        <h2>Control mesmerizing visual effects with your hands</h2>
-        
-        <p>
-            Experience the future of interaction technology with our hand-tracking visual controller.
-            Create stunning visual effects in real-time using nothing but your hands and a webcam.
-        </p>
-        
-        <div class="features">
-            <div class="feature">
-                <h3>Interactive Effects</h3>
-                <p>Control 8 different stunning visual effects through natural hand movements</p>
-            </div>
-            <div class="feature">
-                <h3>Gesture Controls</h3>
-                <p>Pinch, move, and gesture naturally to manipulate size, position, and appearance</p>
-            </div>
-            <div class="feature">
-                <h3>HD Recording</h3>
-                <p>Capture your visual creations in HD video to share with others</p>
-            </div>
+        <div class="glitch-container">
+            <h1>RANDOM RAINBOW LAB</h1>
         </div>
+        <h2>CYBERDELIC HAND CONTROLLER SYSTEM v1.0</h2>
         
-        <a href="app.html" class="cta-button">Launch Experience</a>
-        
-        <div class="requirements">
-            <p>Requirements: Modern browser (Chrome/Firefox/Edge recommended), webcam access, and your hands!</p>
+        <div class="crt-frame">
+            <div class="features">
+                <div class="feature">
+                    <h3>R4D1C4L EFFECTS</h3>
+                    <p>Control 8 different psychedelic visual generators with hand gestures</p>
+                </div>
+                <div class="feature">
+                    <h3>HYPR GE$TURES</h3>
+                    <p>Twist, pinch, move your hands to manipulate the digital reality</p>
+                </div>
+                <div class="feature">
+                    <h3>C4PTURE M0DE</h3>
+                    <p>Record your visual creations in glorious high-definition</p>
+                </div>
+            </div>
+            
+            <a href="app.html" class="cta-button">ENTER THE LAB</a>
+            
+            <div class="requirements">
+                <p>SYSTEM REQUIREMENTS: Web Browser [Chrome/Firefox/Edge], Webcam Access, Human Hands v1.0</p>
+            </div>
         </div>
     </div>
     
     <script>
-        // Create animated particles in background
-        const particlesContainer = document.getElementById('particles');
-        const particleCount = 30;
-        
-        for (let i = 0; i < particleCount; i++) {
-            const particle = document.createElement('div');
-            particle.classList.add('particle');
-            
-            // Random size
-            const size = Math.random() * 5 + 1;
-            particle.style.width = `${size}px`;
-            particle.style.height = `${size}px`;
-            
-            // Random position
-            particle.style.left = `${Math.random() * 100}%`;
-            particle.style.top = `${Math.random() * 100}%`;
-            
-            // Random animation delay
-            particle.style.animationDelay = `${Math.random() * 15}s`;
-            
-            // Random background
-            const hue = Math.random() * 60 + 180; // Blue to purple range
-            particle.style.background = `hsla(${hue}, 100%, 70%, ${Math.random() * 0.5 + 0.3})`;
-            
-            particlesContainer.appendChild(particle);
+        // Create random glitches
+        function createRandomGlitch() {
+            setTimeout(() => {
+                const body = document.querySelector('body');
+                const duration = Math.random() * 200 + 50;
+                const randomColor = Math.random() > 0.5 ? '#ff00ff' : '#00ffff';
+                
+                body.style.transition = `all ${duration}ms`;
+                if (Math.random() > 0.7) {
+                    body.style.filter = `hue-rotate(${Math.random() * 360}deg)`;
+                    setTimeout(() => {
+                        body.style.filter = 'none';
+                    }, duration);
+                }
+                
+                if (Math.random() > 0.9) {
+                    body.style.transform = `translateX(${Math.random() * 10 - 5}px)`;
+                    setTimeout(() => {
+                        body.style.transform = 'none';
+                    }, duration);
+                }
+                
+                createRandomGlitch();
+            }, Math.random() * 5000 + 1000);
         }
+        
+        createRandomGlitch();
+        
+        // Add random horizontal glitch lines
+        setInterval(() => {
+            if (Math.random() > 0.9) {
+                const glitchLine = document.createElement('div');
+                const height = Math.floor(Math.random() * 5) + 1;
+                const top = Math.floor(Math.random() * window.innerHeight);
+                
+                glitchLine.style.position = 'fixed';
+                glitchLine.style.top = `${top}px`;
+                glitchLine.style.left = '0';
+                glitchLine.style.width = '100%';
+                glitchLine.style.height = `${height}px`;
+                glitchLine.style.background = Math.random() > 0.5 ? '#ff00ff' : '#00ffff';
+                glitchLine.style.opacity = '0.5';
+                glitchLine.style.zIndex = '10';
+                
+                document.body.appendChild(glitchLine);
+                
+                setTimeout(() => {
+                    document.body.removeChild(glitchLine);
+                }, 200);
+            }
+        }, 500);
     </script>
 </body>
 </html> 
