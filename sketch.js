@@ -209,7 +209,16 @@ function onResults(results) {
 
 function setup() {
   console.log("P5.js setup function called");
-  createCanvas(windowWidth, windowHeight, WEBGL);
+
+  // Create the main canvas that will contain all effects
+  let mainCanvas = createCanvas(windowWidth, windowHeight, WEBGL);
+
+  // Set an ID for easier access later
+  mainCanvas.id("main-effects-canvas");
+
+  console.log("Main canvas created:", mainCanvas);
+  console.log("Canvas element:", mainCanvas.elt);
+
   colorMode(HSB);
   textureMode(NORMAL);
 
@@ -1007,20 +1016,81 @@ function toggleRecording() {
     recordButton.html("■ STOP");
     recordButton.style("background-color", "#ff0000");
     recordingQualityIndicator.style("display", "block");
+
+    // Show recording started notification
+    showNotification("Recording Started", "#ff0000");
   } else {
     stopRecording();
     recordButton.html("Record HD");
     recordButton.style("background-color", "#ff0066");
     recordingQualityIndicator.style("display", "none");
+
+    // Show recording stopped notification
+    showNotification("Recording Saved", "#00ff00");
   }
+}
+
+// Helper function to show notifications
+function showNotification(message, color) {
+  const notification = createDiv(message);
+  notification.position(width / 2 - 100, 100);
+  notification.style("background-color", "rgba(0,0,0,0.8)");
+  notification.style("color", color);
+  notification.style("padding", "15px 25px");
+  notification.style("border-radius", "5px");
+  notification.style("font-size", "18px");
+  notification.style("font-weight", "bold");
+  notification.style("z-index", "2000");
+  notification.style("text-align", "center");
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
 }
 
 function startRecording() {
   recordedChunks = [];
   isRecording = true;
 
-  const canvas = document.querySelector("canvas");
-  const stream = canvas.captureStream(60); // Increase to 60 FPS for smoother recording
+  // Find our main canvas by ID
+  const mainCanvas = document.getElementById("main-effects-canvas");
+
+  if (mainCanvas) {
+    console.log("Found main effects canvas by ID:", mainCanvas);
+    startRecordingWithCanvas(mainCanvas);
+    return;
+  }
+
+  // Fallback: Try to find the p5 canvas
+  const p5Canvas = document.getElementsByClassName("p5Canvas")[0];
+
+  if (p5Canvas) {
+    console.log("Found p5 canvas:", p5Canvas);
+    startRecordingWithCanvas(p5Canvas);
+    return;
+  }
+
+  // Second fallback: Try any canvas
+  const canvases = document.querySelectorAll("canvas");
+  console.log("Fallback: Found", canvases.length, "canvas elements");
+
+  if (canvases.length > 0) {
+    console.log("Using fallback canvas:", canvases[0]);
+    startRecordingWithCanvas(canvases[0]);
+  } else {
+    alert("No canvas found for recording!");
+    isRecording = false;
+  }
+}
+
+function startRecordingWithCanvas(canvas) {
+  // Log canvas info
+  console.log("Recording canvas:", canvas.width, "x", canvas.height, canvas);
+
+  // Capture the canvas stream at 60fps
+  const stream = canvas.captureStream(60);
+  console.log("Stream created:", stream);
 
   // Try to use MP4 container format directly when supported
   const mimeTypes = [
@@ -1099,6 +1169,13 @@ function stopRecording() {
 }
 
 function saveVideo() {
+  if (recordedChunks.length === 0) {
+    console.error("No data recorded!");
+    return;
+  }
+
+  console.log("Saving video from", recordedChunks.length, "chunks");
+
   // Determine file extension based on MIME type
   let fileExtension = "mp4";
   let mimeType = "video/mp4";
@@ -1108,10 +1185,15 @@ function saveVideo() {
     mimeType = "video/webm";
   }
 
+  // Log the MIME type being used
+  console.log("Using MIME type for saving:", mimeType);
+
   // Create a blob from the recorded chunks
   const blob = new Blob(recordedChunks, {
     type: mimeType,
   });
+
+  console.log("Created blob of size:", blob.size, "bytes");
 
   // Create a URL for the blob
   const url = URL.createObjectURL(blob);
@@ -1121,14 +1203,19 @@ function saveVideo() {
   document.body.appendChild(a);
   a.style.display = "none";
   a.href = url;
-  a.download = `hand-effect-recording-${Date.now()}.${fileExtension}`;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  a.download = `hand-effect-recording-${timestamp}.${fileExtension}`;
 
   // Trigger the download
   a.click();
+  console.log("Download triggered for file:", a.download);
 
   // Clean up
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    console.log("Cleanup completed");
+  }, 100);
 }
 
 // Add a new function to clear the persistence canvas
