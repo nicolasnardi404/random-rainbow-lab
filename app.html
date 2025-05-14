@@ -361,6 +361,7 @@
         const bgUpload = document.getElementById('bg-upload');
         const colorPickers = document.querySelectorAll('.color-picker');
         const ghostToggle = document.getElementById('ghost-toggle');
+        const clearTrailsBtn = document.getElementById('clear-trails');
         
         // Set up the select options based on mode
         function updateBgSelectOptions(mode) {
@@ -368,22 +369,28 @@
             
             // Different options based on mode
             if (mode === 0) { // Shader
-                SHADER_NAMES.forEach((name, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = name;
-                    bgSelect.appendChild(option);
-                });
+                // Use SHADER_NAMES from sketch.js
+                if (typeof SHADER_NAMES !== 'undefined') {
+                    SHADER_NAMES.forEach((name, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = name;
+                        bgSelect.appendChild(option);
+                    });
+                }
                 document.querySelectorAll('.color-picker').forEach(picker => {
                     picker.style.display = 'block';
                 });
             } else if (mode === 2) { // Video
-                BACKGROUND_VIDEO_SOURCES.forEach((video, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = video.name;
-                    bgSelect.appendChild(option);
-                });
+                // Use BACKGROUND_VIDEO_SOURCES from image_info.js
+                if (typeof BACKGROUND_VIDEO_SOURCES !== 'undefined') {
+                    BACKGROUND_VIDEO_SOURCES.forEach((video, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = video.name;
+                        bgSelect.appendChild(option);
+                    });
+                }
                 document.querySelectorAll('.color-picker').forEach(picker => {
                     picker.style.display = 'none';
                 });
@@ -422,6 +429,18 @@
                 const url = URL.createObjectURL(file);
                 window.customBackgroundURL = url;
                 window.customBackgroundType = file.type.startsWith('video/') ? 'video' : 'image';
+                
+                // Show a status message
+                const statusMsg = document.createElement('div');
+                statusMsg.textContent = `Uploaded: ${file.name}`;
+                statusMsg.style.cssText = 'margin-top:5px;font-size:11px;color:#00ffff;';
+                
+                // Remove any existing status message
+                const oldStatus = document.querySelector('.upload-status');
+                if (oldStatus) oldStatus.remove();
+                
+                statusMsg.className = 'upload-status';
+                this.parentNode.appendChild(statusMsg);
             }
         });
         
@@ -439,6 +458,10 @@
                 if (index === 1) window.shaderColor2 = [r, g, b];
                 if (index === 2) window.shaderColor3 = [r, g, b];
             });
+            
+            // Trigger initial color set
+            const event = new Event('input');
+            picker.dispatchEvent(event);
         });
         
         // Initialize persistence toggle
@@ -449,7 +472,17 @@
             ghostToggle.addEventListener('change', function() {
                 window.persistenceEnabled = this.checked;
                 document.getElementById('ghost-status').textContent = 
-                    'Trails effect: ' + (this.checked ? 'ON' : 'OFF');
+                    'Trail recording: ' + (this.checked ? 'ON' : 'OFF');
+            });
+        }
+        
+        // Initialize clear trails button
+        if (clearTrailsBtn) {
+            clearTrailsBtn.addEventListener('click', function() {
+                if (window.clearPersistenceCanvas) {
+                    window.clearPersistenceCanvas();
+                    console.log("Cleared persistence canvas");
+                }
             });
         }
         

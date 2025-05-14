@@ -1,4 +1,5 @@
 // Collection of WebGL fragment shaders for backgrounds
+// These shaders are designed to fill the entire screen
 
 const SHADER_SOURCES = {
   // 1. Cyberpunk Grid
@@ -22,12 +23,14 @@ const SHADER_SOURCES = {
       
       // Transform coordinates
       uv.y = 1.0 - uv.y; // Flip Y
-      uv -= 0.5; // Center
-      uv.x *= u_resolution.x / u_resolution.y; // Fix aspect ratio
+      
+      // Keep aspect ratio but don't center (which creates circular bounds)
+      vec2 adjustedUv = uv;
+      adjustedUv.x *= u_resolution.x / u_resolution.y;
       
       // Create perspective grid effect
       float t = u_time * 0.2;
-      vec2 gridUv = vec2(uv.x, uv.y * 0.3 + 0.7);
+      vec2 gridUv = vec2(adjustedUv.x, adjustedUv.y * 0.3 + 0.7);
       gridUv.y -= t * 0.2;
       
       // Main grid
@@ -44,17 +47,17 @@ const SHADER_SOURCES = {
       float scanline = sin(uv.y * 100.0 + u_time * 5.0) * 0.5 + 0.5;
       scanline = pow(scanline, 10.0) * 0.3;
       
-      // Glow gradient
-      float glow = length(uv.y + 0.3);
+      // Glow gradient - use y value directly instead of length
+      float glow = uv.y + 0.3;
       vec3 color = mix(u_color1, u_color2, glow);
       
       // Combine effects
       color += vec3(gridVal + gridVal2 + lines + scanline);
       
-      // Vignette
-      float vignette = 1.0 - length(uv * 1.5);
-      vignette = smoothstep(0.0, 1.0, vignette);
-      color *= vignette;
+      // Vignette that doesn't limit to a circle
+      float vignette = (1.0 - adjustedUv.x * adjustedUv.x) * (1.0 - adjustedUv.y * adjustedUv.y);
+      vignette = smoothstep(0.0, 0.4, vignette);
+      color *= 0.7 + 0.3 * vignette;
       
       gl_FragColor = vec4(color, 1.0);
     }
@@ -101,8 +104,9 @@ const SHADER_SOURCES = {
     void main() {
       vec2 uv = gl_FragCoord.xy / u_resolution.xy;
       
-      // Centered coordinates
-      vec2 p = uv * 2.0 - 1.0;
+      // Use uv directly without centering
+      vec2 p = uv;
+      // Adjust aspect ratio but don't center
       p.x *= u_resolution.x / u_resolution.y;
       
       float time = u_time * 0.1;
@@ -120,16 +124,16 @@ const SHADER_SOURCES = {
       float stars = step(0.98, snoise(p * 50.0)) * 0.5;
       stars += step(0.99, snoise(p * 100.0 + time)) * 0.5;
       
-      // Color gradient
-      vec3 color = mix(u_color1, u_color2, nebula);
+      // Color gradient - use direct coordinates instead of length
+      vec3 color = mix(u_color1, u_color2, uv.y + nebula * 0.3);
       
       // Add stars
       color += stars;
       
-      // Vignette
-      float vignette = 1.0 - length(p * 0.7);
-      vignette = smoothstep(0.0, 1.0, vignette);
-      color *= vignette;
+      // Vignette that doesn't restrict to a circle
+      float vignette = (1.0 - p.x * p.x * 0.5) * (1.0 - p.y * p.y * 0.5);
+      vignette = smoothstep(0.0, 0.5, vignette);
+      color *= 0.7 + 0.3 * vignette;
       
       gl_FragColor = vec4(color, 1.0);
     }
@@ -226,10 +230,10 @@ const SHADER_SOURCES = {
       
       float time = u_time * 0.2;
       
-      // Offset for the RGB channels
-      float r_offset = 0.01 * snoise(uv + vec2(time * 0.5, 0.0));
-      float g_offset = 0.01 * snoise(uv + vec2(time * 0.3, time * 0.2));
-      float b_offset = 0.01 * snoise(uv + vec2(0.0, time * 0.6));
+      // Offset for the RGB channels - increased slightly for more visible effect
+      float r_offset = 0.015 * snoise(uv + vec2(time * 0.5, 0.0));
+      float g_offset = 0.015 * snoise(uv + vec2(time * 0.3, time * 0.2));
+      float b_offset = 0.015 * snoise(uv + vec2(0.0, time * 0.6));
       
       // Create distorted UV coordinates for each channel
       vec2 uv_r = uv + vec2(r_offset, r_offset * 0.5);
@@ -248,9 +252,10 @@ const SHADER_SOURCES = {
       float noise = snoise(uv * 50.0 + time) * 0.05;
       color += noise;
       
-      // Apply a subtle vignette
-      float vignette = 1.0 - length(uv - 0.5) * 0.7;
-      color *= vignette;
+      // Apply a rectangular vignette instead of circular one to ensure full screen coverage
+      float vignette = (1.0 - uv.x * uv.x * 0.5) * (1.0 - uv.y * uv.y * 0.5);
+      vignette = smoothstep(0.0, 0.7, vignette);
+      color *= 0.7 + 0.3 * vignette;
       
       // Output final color
       gl_FragColor = vec4(color, 1.0);
@@ -315,8 +320,9 @@ const SHADER_SOURCES = {
     void main() {
       vec2 uv = gl_FragCoord.xy / u_resolution.xy;
       
-      // Center and adjust aspect ratio
-      vec2 p = uv * 2.0 - 1.0;
+      // Create stretched coordinates that maintain aspect ratio but don't use centered coords
+      // This ensures the entire screen is covered
+      vec2 p = uv;
       p.x *= u_resolution.x / u_resolution.y;
       
       // Time variables

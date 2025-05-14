@@ -296,8 +296,9 @@ function initBackgrounds() {
 
   for (let key of shaderSourceKeys) {
     const newShader = createShader(
-      // Simple pass-through vertex shader
+      // Improved vertex shader to ensure full screen coverage
       `
+      // Vertex shader to cover the entire screen
       attribute vec3 aPosition;
       attribute vec2 aTexCoord;
       
@@ -305,6 +306,9 @@ function initBackgrounds() {
       
       void main() {
         vTexCoord = aTexCoord;
+        
+        // This ensures the vertex positions fill the entire screen properly
+        // We directly pass through the position with normalization
         vec4 positionVec4 = vec4(aPosition, 1.0);
         positionVec4.xy = positionVec4.xy * 2.0 - 1.0;
         gl_Position = positionVec4;
@@ -315,6 +319,9 @@ function initBackgrounds() {
     );
 
     shaders.push(newShader);
+
+    // Log shader creation
+    console.log(`Initialized shader: ${key}`);
   }
 
   // Load background videos
@@ -324,6 +331,7 @@ function initBackgrounds() {
     vid.loop();
     vid.volume(0);
     bgVideos.push(vid);
+    console.log(`Loaded video: ${source.name}`);
   });
 }
 
@@ -331,7 +339,7 @@ function draw() {
   // Clear the canvas at the beginning of each frame
   clear();
 
-  // Draw background first
+  // Draw background first - this will fill entire screen
   drawBackground();
 
   // Always draw the persistence canvas (to show existing trails)
@@ -360,8 +368,8 @@ function draw() {
 
   // Always draw some default effect even if hands are not detected
   if (hands.length === 0) {
-    resetMatrix();
-    translate(0, 0, 0);
+    resetMatrix(); // Reset to center of screen
+    // Don't translate, keep in center for better composition
 
     // Draw a default effect with auto rotation
     push();
@@ -463,10 +471,11 @@ function drawBackground() {
   push();
   // Reset any transformations so background fills screen
   resetMatrix();
-  // WEBGL coordinates are centered, so translate to corner for full-screen drawing
-  translate(-width / 2, -height / 2, 0);
 
-  // Handle different background types
+  // In WEBGL mode, coordinates are centered at (0,0)
+  // We need to draw a rect that covers the entire screen
+
+  // For shaders, we'll use the shader's coordinate system
   if (mode === 0) {
     // Shader
     if (shaders.length > 0 && index < shaders.length) {
@@ -485,19 +494,28 @@ function drawBackground() {
       if (window.shaderColor3)
         thisShader.setUniform("u_color3", window.shaderColor3);
 
-      // Draw shader as full-screen rectangle (in WEBGL mode this needs width/height adjustment)
-      rect(0, 0, width, height);
+      // Draw shader as full-screen rectangle - make even larger to guarantee coverage
+      rectMode(CENTER);
+      // Draw a rectangle 2x the size of the canvas to ensure full coverage
+      rect(0, 0, width * 2.0, height * 2.0);
       resetShader();
     }
-  } else if (mode === 2) {
-    // Video
-    if (bgVideos.length > 0 && index < bgVideos.length) {
-      texture(bgVideos[index]);
-      rect(0, 0, width, height);
+  } else {
+    // For videos and custom backgrounds, we need to position differently
+    // Translate to bottom-left corner in WEBGL coordinates
+    translate(-width / 2, -height / 2, 0);
+
+    if (mode === 2) {
+      // Video
+      if (bgVideos.length > 0 && index < bgVideos.length) {
+        texture(bgVideos[index]);
+        rectMode(CORNER);
+        rect(0, 0, width, height);
+      }
+    } else if (mode === 3) {
+      // Custom upload
+      handleCustomBackground();
     }
-  } else if (mode === 3) {
-    // Custom upload
-    handleCustomBackground();
   }
 
   pop();
@@ -530,8 +548,9 @@ function handleCustomBackground() {
       customBgType === "image" ||
       (customBgType === "video" && customBg.loadedmetadata)
     ) {
-      // Draw the custom background (full screen in WEBGL mode)
+      // Draw the custom background to fill the entire screen
       texture(customBg);
+      rectMode(CORNER);
       rect(0, 0, width, height);
     }
   }
