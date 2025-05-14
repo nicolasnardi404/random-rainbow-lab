@@ -3,6 +3,13 @@ let hands = [];
 let rotationAngle = 0;
 let debugMode = true;
 
+// Video recording variables
+let mediaRecorder;
+let recordedChunks = [];
+let isRecording = false;
+let recordButton;
+let recordingQualityIndicator;
+
 // Effect parameters
 let particleCount = 150;
 let particleSize = 8;
@@ -103,6 +110,32 @@ function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
   colorMode(HSB);
   textureMode(NORMAL);
+
+  // Create record button with improved styling
+  recordButton = createButton("Record HD");
+  recordButton.position(20, 20);
+  recordButton.mousePressed(toggleRecording);
+  recordButton.style("z-index", "1001");
+  recordButton.style("padding", "10px 15px");
+  recordButton.style("background-color", "#ff0066");
+  recordButton.style("color", "white");
+  recordButton.style("border", "none");
+  recordButton.style("border-radius", "5px");
+  recordButton.style("cursor", "pointer");
+  recordButton.style("font-weight", "bold");
+  recordButton.style("font-size", "14px");
+  recordButton.style("box-shadow", "0 2px 4px rgba(0,0,0,0.2)");
+
+  // Create recording quality indicator
+  recordingQualityIndicator = createDiv("");
+  recordingQualityIndicator.position(150, 20);
+  recordingQualityIndicator.style("z-index", "1001");
+  recordingQualityIndicator.style("padding", "10px");
+  recordingQualityIndicator.style("color", "white");
+  recordingQualityIndicator.style("background-color", "rgba(0,0,0,0.5)");
+  recordingQualityIndicator.style("border-radius", "5px");
+  recordingQualityIndicator.style("font-size", "14px");
+  recordingQualityIndicator.style("display", "none");
 
   // Create webcam capture for effects
   capture = createCapture(VIDEO);
@@ -516,11 +549,14 @@ function updateDebugPanel() {
     "Particle Storm",
   ];
 
+  let recordingStatus = isRecording ? "RECORDING" : "";
+
   debugPanel.innerHTML = `
     FPS: ${floor(frameRate())}<br>
     Hands: ${hands.length}<br>
     Effect: ${effectNames[currentEffect]}<br>
-    Energy: ${floor(energyLevel * 100)}%
+    Energy: ${floor(energyLevel * 100)}%<br>
+    ${recordingStatus}
   `;
 }
 
@@ -536,9 +572,143 @@ function keyPressed() {
       "Effect changed to:",
       ["Crystal", "Nebula", "Vortex"][currentEffect]
     );
+  } else if (key === "r" || key === "R") {
+    // Toggle recording with 'r' key
+    toggleRecording();
   }
 }
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+}
+
+// Video recording functions
+function toggleRecording() {
+  if (!isRecording) {
+    startRecording();
+    recordButton.html("■ STOP");
+    recordButton.style("background-color", "#ff0000");
+    recordingQualityIndicator.style("display", "block");
+  } else {
+    stopRecording();
+    recordButton.html("Record HD");
+    recordButton.style("background-color", "#ff0066");
+    recordingQualityIndicator.style("display", "none");
+  }
+}
+
+function startRecording() {
+  recordedChunks = [];
+  isRecording = true;
+
+  const canvas = document.querySelector("canvas");
+  const stream = canvas.captureStream(60); // Increase to 60 FPS for smoother recording
+
+  // Try to use MP4 container format directly when supported
+  const mimeTypes = [
+    "video/mp4;codecs=h264",
+    "video/mp4",
+    "video/webm;codecs=h264",
+    "video/webm",
+  ];
+
+  // Find the first supported MIME type with much higher bitrate for better quality
+  let options = {
+    videoBitsPerSecond: 8000000, // Increased to 8 Mbps for higher quality
+  };
+
+  let supportedMimeType;
+
+  for (const type of mimeTypes) {
+    if (MediaRecorder.isTypeSupported(type)) {
+      supportedMimeType = type;
+      options.mimeType = type;
+      console.log(`Using supported mime type: ${type}`);
+      break;
+    }
+  }
+
+  try {
+    mediaRecorder = new MediaRecorder(stream, options);
+    // Display quality info
+    const isMP4 = supportedMimeType && supportedMimeType.includes("mp4");
+    const format = isMP4 ? "MP4" : "WebM";
+    const bitrate = Math.round(options.videoBitsPerSecond / 1000000);
+    recordingQualityIndicator.html(
+      `Recording: ${format} @ ${bitrate}Mbps, 60FPS`
+    );
+  } catch (e) {
+    console.error("Exception while creating MediaRecorder:", e);
+    try {
+      // Fallback to default options but still try for higher quality
+      mediaRecorder = new MediaRecorder(stream, {
+        videoBitsPerSecond: 5000000,
+      });
+      recordingQualityIndicator.html(`Recording: Mid-quality (5Mbps)`);
+    } catch (e) {
+      try {
+        // Last resort - use default settings
+        mediaRecorder = new MediaRecorder(stream);
+        recordingQualityIndicator.html(`Recording: Standard quality`);
+      } catch (e) {
+        alert("MediaRecorder is not supported by this browser");
+        isRecording = false;
+        recordingQualityIndicator.style("display", "none");
+        return;
+      }
+    }
+  }
+
+  mediaRecorder.ondataavailable = function (event) {
+    if (event.data.size > 0) {
+      recordedChunks.push(event.data);
+    }
+  };
+
+  mediaRecorder.onstop = saveVideo;
+
+  // Start recording with smaller chunks to improve quality
+  mediaRecorder.start(40); // Smaller time slices for better quality
+  console.log("Recording started with high quality settings");
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    console.log("Recording stopped");
+  }
+}
+
+function saveVideo() {
+  // Determine file extension based on MIME type
+  let fileExtension = "mp4";
+  let mimeType = "video/mp4";
+
+  if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes("webm")) {
+    fileExtension = "webm";
+    mimeType = "video/webm";
+  }
+
+  // Create a blob from the recorded chunks
+  const blob = new Blob(recordedChunks, {
+    type: mimeType,
+  });
+
+  // Create a URL for the blob
+  const url = URL.createObjectURL(blob);
+
+  // Create a download link
+  const a = document.createElement("a");
+  document.body.appendChild(a);
+  a.style.display = "none";
+  a.href = url;
+  a.download = `hand-effect-recording-${Date.now()}.${fileExtension}`;
+
+  // Trigger the download
+  a.click();
+
+  // Clean up
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
 }
