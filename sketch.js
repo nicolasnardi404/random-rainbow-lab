@@ -133,6 +133,11 @@ function setupMediaPipe() {
 }
 
 function onResults(results) {
+  // Call the visualization function if it exists
+  if (window.drawHandLandmarks) {
+    window.drawHandLandmarks(results);
+  }
+
   hands = [];
   if (results.multiHandLandmarks) {
     results.multiHandLandmarks.forEach((landmarks, index) => {

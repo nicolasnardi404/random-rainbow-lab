@@ -51,18 +51,50 @@
         .hand-control {
             margin-bottom: 15px;
         }
-        #video {
-            display: none;
+        #video-container {
             position: absolute;
             right: 10px;
             bottom: 10px;
-            width: 160px;
-            height: 120px;
+            width: 220px;
+            height: 165px;
             border-radius: 8px;
             z-index: 1000;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            overflow: hidden;
+            background: #000;
         }
-        .show-video #video {
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #hand-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1001;
+        }
+        .show-video #video-container {
             display: block;
+        }
+        #video-toggle {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            font-size: 10px;
+            padding: 2px 5px;
+            z-index: 1002;
+            cursor: pointer;
         }
         #camera-permission {
             position: fixed;
@@ -87,10 +119,39 @@
             cursor: pointer;
             font-weight: bold;
         }
+        /* Persistent toggle button that's always visible */
+        #persistent-toggle {
+            position: fixed;
+            right: 10px;
+            bottom: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ffff;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 1500;
+            text-transform: uppercase;
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+        #persistent-toggle:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+        /* Hide the container initially */
+        #video-container {
+            display: none;
+        }
     </style>
 </head>
 <body class="show-video">
-    <video id="video" playsinline autoplay muted></video>
+    <div id="video-container">
+        <video id="video" playsinline autoplay muted></video>
+        <canvas id="hand-canvas"></canvas>
+        <button id="video-toggle">Hide</button>
+    </div>
+    <button id="persistent-toggle">Show Camera</button>
     <div id="debug-panel">
         <div id="fps"></div>
         <div id="hands-count"></div>
@@ -131,12 +192,50 @@
     </div>
     
     <script>
-    // Debug helper for camera access
+    // Debug helper for camera access and hands visualization
     document.addEventListener('DOMContentLoaded', function() {
         console.log("DOM loaded, initializing camera checks");
         const cameraStatus = document.getElementById('camera-status');
         const cameraPermission = document.getElementById('camera-permission');
         const requestCameraBtn = document.getElementById('request-camera');
+        const videoToggle = document.getElementById('video-toggle');
+        const videoContainer = document.getElementById('video-container');
+        const persistentToggle = document.getElementById('persistent-toggle');
+        const handCanvas = document.getElementById('hand-canvas');
+        const canvasCtx = handCanvas.getContext('2d');
+        
+        // Set canvas size
+        function updateCanvasSize() {
+            const videoRect = videoContainer.getBoundingClientRect();
+            handCanvas.width = videoRect.width;
+            handCanvas.height = videoRect.height;
+        }
+        updateCanvasSize();
+        window.addEventListener('resize', updateCanvasSize);
+        
+        // Default to showing the webcam view
+        videoContainer.style.display = 'block';
+        
+        // Video toggle buttons
+        function toggleVideoDisplay(show) {
+            if (show) {
+                videoContainer.style.display = 'block';
+                videoToggle.textContent = 'Hide';
+                persistentToggle.textContent = 'Hide Camera';
+            } else {
+                videoContainer.style.display = 'none';
+                videoToggle.textContent = 'Show';
+                persistentToggle.textContent = 'Show Camera';
+            }
+        }
+        
+        videoToggle.addEventListener('click', function() {
+            toggleVideoDisplay(videoContainer.style.display === 'none');
+        });
+        
+        persistentToggle.addEventListener('click', function() {
+            toggleVideoDisplay(videoContainer.style.display === 'none');
+        });
         
         // Check camera permission
         navigator.permissions.query({name: 'camera'}).then(permissionStatus => {
@@ -163,6 +262,78 @@
                     cameraStatus.textContent = "Camera error: " + err.message;
                 });
         });
+        
+        // Function to draw hand landmarks on the canvas
+        window.drawHandLandmarks = function(results) {
+            // Clear the canvas
+            canvasCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+            
+            if (!results || !results.multiHandLandmarks) return;
+            
+            // Set drawing styles
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeStyle = '#00FFFF';
+            canvasCtx.fillStyle = '#FF00FF';
+            
+            // Draw each detected hand
+            results.multiHandLandmarks.forEach((landmarks, handIndex) => {
+                // Draw dots for all landmarks
+                landmarks.forEach((landmark, index) => {
+                    const x = landmark.x * handCanvas.width;
+                    const y = landmark.y * handCanvas.height;
+                    
+                    // Draw a dot
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(x, y, 3, 0, 2 * Math.PI);
+                    canvasCtx.fill();
+                    
+                    // Special highlight for key points (wrist, thumb tip, index tip)
+                    if (index === 0 || index === 4 || index === 8) {
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(x, y, 5, 0, 2 * Math.PI);
+                        canvasCtx.strokeStyle = index === 0 ? '#FFFF00' : (index === 4 ? '#FF00FF' : '#00FFFF');
+                        canvasCtx.stroke();
+                    }
+                });
+                
+                // Connect landmarks with lines to draw the hand skeleton
+                const connections = [
+                    // Thumb
+                    [0, 1], [1, 2], [2, 3], [3, 4],
+                    // Index finger
+                    [0, 5], [5, 6], [6, 7], [7, 8],
+                    // Middle finger
+                    [0, 9], [9, 10], [10, 11], [11, 12],
+                    // Ring finger
+                    [0, 13], [13, 14], [14, 15], [15, 16],
+                    // Pinky
+                    [0, 17], [17, 18], [18, 19], [19, 20],
+                    // Palm
+                    [0, 5], [5, 9], [9, 13], [13, 17]
+                ];
+                
+                // Draw the connections
+                connections.forEach(connection => {
+                    const [i, j] = connection;
+                    const start = landmarks[i];
+                    const end = landmarks[j];
+                    
+                    canvasCtx.beginPath();
+                    canvasCtx.moveTo(start.x * handCanvas.width, start.y * handCanvas.height);
+                    canvasCtx.lineTo(end.x * handCanvas.width, end.y * handCanvas.height);
+                    canvasCtx.strokeStyle = '#00FFFF';
+                    canvasCtx.stroke();
+                });
+                
+                // Label the hand
+                const wrist = landmarks[0];
+                canvasCtx.fillStyle = '#FFFFFF';
+                canvasCtx.font = '12px Arial';
+                canvasCtx.fillText(handIndex === 0 ? 'Right' : 'Left', 
+                                  wrist.x * handCanvas.width + 10, 
+                                  wrist.y * handCanvas.height + 10);
+            });
+        };
     });
     </script>
     
