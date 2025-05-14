@@ -233,6 +233,47 @@
             cursor: pointer;
             padding: 0;
         }
+        /* Ghost effect toggle styling */
+        .effect-toggle {
+            margin-top: 10px;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            border: 1px solid #555;
+        }
+        .effect-toggle label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .effect-toggle input[type="checkbox"] {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+            accent-color: #ff00ff;
+        }
+        
+        .effect-clear-btn {
+            margin-top: 5px;
+            padding: 5px 10px;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: black;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        
+        .effect-clear-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 5px rgba(255, 0, 255, 0.8);
+        }
     </style>
 </head>
 <body class="show-video">
@@ -247,7 +288,6 @@
         <h3>Background</h3>
         <div class="bg-buttons">
             <button class="bg-button active" data-mode="0">Shader</button>
-            <button class="bg-button" data-mode="1">Image</button>
             <button class="bg-button" data-mode="2">Video</button>
             <button class="bg-button" data-mode="3">Custom</button>
         </div>
@@ -262,6 +302,15 @@
             <input type="color" class="color-picker" id="color2" value="#00ffff">
             <input type="color" class="color-picker" id="color3" value="#ffff00">
         </div>
+        
+        <!-- Trails Effect Controls -->
+        <div class="effect-toggle">
+            <label for="ghost-toggle">
+                <input type="checkbox" id="ghost-toggle">
+                Record Trails
+            </label>
+            <button id="clear-trails" class="effect-clear-btn">Clear Trails</button>
+        </div>
     </div>
     
     <div id="debug-panel">
@@ -269,6 +318,7 @@
         <div id="hands-count"></div>
         <div id="current-effect"></div>
         <div id="controls"></div>
+        <div id="ghost-status">Trail recording: OFF</div>
         <div id="camera-status">Camera: Waiting...</div>
     </div>
     <div id="instructions">
@@ -310,6 +360,7 @@
         const bgSelect = document.getElementById('bg-select');
         const bgUpload = document.getElementById('bg-upload');
         const colorPickers = document.querySelectorAll('.color-picker');
+        const ghostToggle = document.getElementById('ghost-toggle');
         
         // Set up the select options based on mode
         function updateBgSelectOptions(mode) {
@@ -325,16 +376,6 @@
                 });
                 document.querySelectorAll('.color-picker').forEach(picker => {
                     picker.style.display = 'block';
-                });
-            } else if (mode === 1) { // Image
-                BACKGROUND_IMAGE_SOURCES.forEach((img, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = img.name;
-                    bgSelect.appendChild(option);
-                });
-                document.querySelectorAll('.color-picker').forEach(picker => {
-                    picker.style.display = 'none';
                 });
             } else if (mode === 2) { // Video
                 BACKGROUND_VIDEO_SOURCES.forEach((video, index) => {
@@ -399,6 +440,18 @@
                 if (index === 2) window.shaderColor3 = [r, g, b];
             });
         });
+        
+        // Initialize persistence toggle
+        if (ghostToggle) {
+            ghostToggle.checked = false;
+            window.persistenceEnabled = false;
+            
+            ghostToggle.addEventListener('change', function() {
+                window.persistenceEnabled = this.checked;
+                document.getElementById('ghost-status').textContent = 
+                    'Trails effect: ' + (this.checked ? 'ON' : 'OFF');
+            });
+        }
         
         // Initialize with shader mode
         updateBgSelectOptions(0);

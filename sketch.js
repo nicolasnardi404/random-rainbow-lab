@@ -24,9 +24,8 @@ let rotationSpeed = 0;
 
 // Background parameters
 let currentBackground = 0;
-let backgroundMode = 0; // 0: shader, 1: image, 2: video, 3: user upload
-const BACKGROUND_MODES = ["Shader", "Image", "Video", "Custom"];
-let backgroundImages = [];
+let backgroundMode = 0; // 0: shader, 2: video, 3: user upload
+const BACKGROUND_MODES = ["Shader", "Video", "Custom"];
 let backgroundVideos = [];
 let userBackground = null;
 let backgroundShaders = [];
@@ -40,6 +39,10 @@ const SHADER_NAMES = [
 ];
 let shaderTime = 0;
 let bgSelectBtn;
+
+// Global persistence variables (not per-effect)
+let persistCanvas;
+let persistenceAlpha = 0.15; // How much of the previous frame to keep (lower = faster fade)
 
 // Effect modes
 let currentEffect = 0;
@@ -69,8 +72,6 @@ let videoElement;
 
 // Additional effect parameters
 let webcamTexture;
-let prevFrames = [];
-let maxTrailFrames = 15;
 let pixelSize = 15;
 let mirrorSegments = 8;
 let particles = [];
@@ -81,7 +82,6 @@ let capture;
 
 // Add background-related variables
 let shaders = [];
-let bgImages = [];
 let bgVideos = [];
 let customBg;
 let customBgType;
@@ -213,6 +213,10 @@ function setup() {
   colorMode(HSB);
   textureMode(NORMAL);
 
+  // Create persistence canvas with the correct size
+  persistCanvas = createGraphics(windowWidth, windowHeight);
+  persistCanvas.background(0);
+
   // Create record button with improved styling
   recordButton = createButton("Record HD");
   recordButton.position(20, 20);
@@ -304,21 +308,6 @@ function initBackgrounds() {
     shaders.push(newShader);
   }
 
-  // Load background images
-  BACKGROUND_IMAGE_SOURCES.forEach((source) => {
-    loadImage(
-      source.url,
-      (img) => {
-        bgImages.push(img);
-      },
-      (error) => {
-        console.error("Error loading background image:", error);
-        // Add a placeholder if image failed to load
-        bgImages.push(createGraphics(100, 100));
-      }
-    );
-  });
-
   // Load background videos
   BACKGROUND_VIDEO_SOURCES.forEach((source) => {
     const vid = createVideo(source.url);
@@ -330,8 +319,23 @@ function initBackgrounds() {
 }
 
 function draw() {
-  // Draw background before anything else
+  // Clear the canvas at the beginning of each frame
+  clear();
+
+  // Draw background first
   drawBackground();
+
+  // Always draw the persistence canvas (to show existing trails)
+  push();
+  // In WEBGL mode, we need to reset the coordinate system and translate to draw full screen
+  resetMatrix();
+  translate(-width / 2, -height / 2, 0);
+  imageMode(CORNER);
+  image(persistCanvas, 0, 0, width, height);
+  pop();
+
+  // Main drawing code starts here
+  push();
 
   // Update rotation
   rotationAngle += 0.01;
@@ -355,22 +359,10 @@ function draw() {
     rotateY(rotationAngle);
     rotateX(rotationAngle * 0.5);
 
-    // Change effects automatically when no hands detected
-    /*
-    if (frameCount % 300 === 0) {
-      currentEffect = (currentEffect + 1) % totalEffects;
-    }
-    */
-
     // Draw the current effect
     drawCurrentEffect();
     pop();
-
-    return;
-  }
-
-  // Process hands and effects
-  if (hands.length > 0) {
+  } else if (hands.length > 0) {
     // Left hand controls position and scale
     if (hands[0]) {
       const palmPos = hands[0][0];
@@ -407,6 +399,42 @@ function draw() {
     // Draw the current effect
     drawCurrentEffect();
   }
+
+  // End main drawing
+  pop();
+
+  // Only update the persistence canvas with new trails if the effect is enabled
+  // This ensures we respect the trail recording state across effect changes
+  if (window.persistenceEnabled) {
+    updatePersistenceCanvas();
+  }
+  // Note: We no longer clear the persistence canvas when the effect is disabled
+}
+
+function updatePersistenceCanvas() {
+  // Ensure we never reset the persistence canvas when changing effects
+  // Get current frame
+  let currentFrame = get();
+
+  // Apply fade to persistence canvas - this creates the trail effect
+  // by slightly fading the existing content rather than completely erasing it
+  persistCanvas.push();
+  persistCanvas.fill(0, 0, 0, 1.0 - persistenceAlpha);
+  persistCanvas.noStroke();
+  persistCanvas.rect(0, 0, persistCanvas.width, persistCanvas.height);
+  persistCanvas.pop();
+
+  // Ensure image uses corner mode
+  persistCanvas.imageMode(CORNER);
+  // Draw current frame to persistence canvas (full size)
+  // This adds the current frame to the persistence canvas
+  persistCanvas.image(
+    currentFrame,
+    0,
+    0,
+    persistCanvas.width,
+    persistCanvas.height
+  );
 }
 
 function drawBackground() {
@@ -426,6 +454,8 @@ function drawBackground() {
   push();
   // Reset any transformations so background fills screen
   resetMatrix();
+  // WEBGL coordinates are centered, so translate to corner for full-screen drawing
+  translate(-width / 2, -height / 2, 0);
 
   // Handle different background types
   if (mode === 0) {
@@ -446,15 +476,9 @@ function drawBackground() {
       if (window.shaderColor3)
         thisShader.setUniform("u_color3", window.shaderColor3);
 
-      // Draw shader as full-screen rectangle
+      // Draw shader as full-screen rectangle (in WEBGL mode this needs width/height adjustment)
       rect(0, 0, width, height);
       resetShader();
-    }
-  } else if (mode === 1) {
-    // Image
-    if (bgImages.length > 0 && index < bgImages.length) {
-      texture(bgImages[index]);
-      rect(0, 0, width, height);
     }
   } else if (mode === 2) {
     // Video
@@ -497,7 +521,7 @@ function handleCustomBackground() {
       customBgType === "image" ||
       (customBgType === "video" && customBg.loadedmetadata)
     ) {
-      // Draw the custom background
+      // Draw the custom background (full screen in WEBGL mode)
       texture(customBg);
       rect(0, 0, width, height);
     }
@@ -860,6 +884,7 @@ function updateDebugPanel() {
     const handsCountDiv = document.getElementById("hands-count");
     const currentEffectDiv = document.getElementById("current-effect");
     const controlsDiv = document.getElementById("controls");
+    const ghostStatusDiv = document.getElementById("ghost-status");
 
     if (!fpsDiv || !handsCountDiv || !currentEffectDiv || !controlsDiv) {
       console.error("Debug panel elements not found");
@@ -886,6 +911,13 @@ function updateDebugPanel() {
     ];
     currentEffectDiv.innerHTML = `Effect: ${effectNames[currentEffect]}`;
 
+    // Update persistence effect status - use the global state
+    if (ghostStatusDiv) {
+      ghostStatusDiv.innerHTML = `Trail recording: ${
+        window.persistenceEnabled ? "ON" : "OFF"
+      }`;
+    }
+
     // Update controls info
     controlsDiv.innerHTML = `
       Scale: ${Math.round(effectScale)}<br>
@@ -907,6 +939,12 @@ function keyPressed() {
       debugPanel.style.display = debugMode ? "block" : "none";
     }
   } else if (key === " ") {
+    // Log the trail recording state before changing effect
+    console.log(
+      "Trail recording state before change:",
+      window.persistenceEnabled ? "ON" : "OFF"
+    );
+
     // Change effect on spacebar press with better feedback
     currentEffect = (currentEffect + 1) % totalEffects;
 
@@ -924,6 +962,12 @@ function keyPressed() {
 
     console.log("Effect changed to:", effectNames[currentEffect]);
 
+    // Log the trail recording state after changing effect
+    console.log(
+      "Trail recording state after change:",
+      window.persistenceEnabled ? "ON" : "OFF"
+    );
+
     // Visual feedback for effect change
     const notification = createDiv(`Effect: ${effectNames[currentEffect]}`);
     notification.position(width / 2 - 100, 50);
@@ -939,6 +983,9 @@ function keyPressed() {
     setTimeout(() => {
       notification.remove();
     }, 2000);
+
+    // IMPORTANT: We don't change the trail recording state when changing effects
+    // The persistence state is controlled solely by the toggle button
   } else if (key === "r" || key === "R") {
     // Toggle recording with 'r' key
     toggleRecording();
@@ -947,6 +994,10 @@ function keyPressed() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+
+  // Recreate the persistence canvas when window is resized
+  persistCanvas = createGraphics(windowWidth, windowHeight);
+  persistCanvas.background(0);
 }
 
 // Video recording functions
@@ -1079,3 +1130,11 @@ function saveVideo() {
   window.URL.revokeObjectURL(url);
   document.body.removeChild(a);
 }
+
+// Add a new function to clear the persistence canvas
+function clearPersistenceCanvas() {
+  persistCanvas.background(0);
+}
+
+// Make the function globally available
+window.clearPersistenceCanvas = clearPersistenceCanvas;

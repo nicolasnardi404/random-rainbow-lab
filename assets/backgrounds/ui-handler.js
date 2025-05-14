@@ -5,10 +5,15 @@ document.addEventListener("DOMContentLoaded", function () {
   window.selectedBackgroundMode = 0; // Shader by default
   window.selectedBackground = 0; // First background in each category
 
+  // Single global persistence state (not per-effect)
+  window.persistenceEnabled = false; // Persistence effect disabled by default
+
   // Background type buttons
   const bgTypeButtons = document.querySelectorAll(".bg-type-btn");
   const bgSelect = document.getElementById("bg-select");
   const uploadSection = document.getElementById("upload-section");
+  const persistenceToggle = document.getElementById("ghost-toggle");
+  const clearTrailsBtn = document.getElementById("clear-trails");
 
   // Background color pickers
   const colorPicker1 = document.getElementById("shader-color1");
@@ -17,6 +22,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Upload input element
   const uploadInput = document.getElementById("bg-upload");
+
+  // Ensure the toggle is in sync with our default state (OFF)
+  if (persistenceToggle) {
+    persistenceToggle.checked = window.persistenceEnabled;
+  }
 
   // Initialize background options in dropdown
   function populateBackgroundOptions(mode) {
@@ -28,11 +38,6 @@ document.addEventListener("DOMContentLoaded", function () {
       case 0: // Shader
         SHADER_NAMES.forEach((name, index) => {
           options.push(`<option value="${index}">${name}</option>`);
-        });
-        break;
-      case 1: // Image
-        BACKGROUND_IMAGE_SOURCES.forEach((source, index) => {
-          options.push(`<option value="${index}">${source.name}</option>`);
         });
         break;
       case 2: // Video
@@ -77,6 +82,32 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   });
+
+  // Handle persistence effect toggle
+  if (persistenceToggle) {
+    persistenceToggle.addEventListener("change", function () {
+      window.persistenceEnabled = this.checked;
+
+      // Update the status display in the debug panel
+      const statusElement = document.getElementById("ghost-status");
+      if (statusElement) {
+        statusElement.textContent =
+          "Trail recording: " + (this.checked ? "ON" : "OFF");
+      }
+    });
+  }
+
+  // Handle clear trails button
+  if (clearTrailsBtn) {
+    clearTrailsBtn.addEventListener("click", function () {
+      // Call the clear function defined in sketch.js
+      if (window.clearPersistenceCanvas) {
+        window.clearPersistenceCanvas();
+      } else {
+        console.warn("clearPersistenceCanvas function not found");
+      }
+    });
+  }
 
   // Background selection dropdown
   bgSelect.addEventListener("change", function () {
