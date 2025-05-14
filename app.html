@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Effects - Interactive 3D Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #debug-panel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 5px;
+            display: block;
+            z-index: 1000;
+        }
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        #instructions h3 {
+            margin: 0 0 10px 0;
+            color: #00ffff;
+        }
+        .hand-control {
+            margin-bottom: 15px;
+        }
+        #video {
+            display: none;
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            width: 160px;
+            height: 120px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+        .show-video #video {
+            display: block;
+        }
+        #camera-permission {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 2000;
+            display: none;
+        }
+        #camera-permission button {
+            background: #00ffff;
+            border: none;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="show-video">
+    <video id="video" playsinline autoplay muted></video>
+    <div id="debug-panel">
+        <div id="fps"></div>
+        <div id="hands-count"></div>
+        <div id="current-effect"></div>
+        <div id="controls"></div>
+        <div id="camera-status">Camera: Waiting...</div>
+    </div>
+    <div id="instructions">
+        <h3>Hand Controls</h3>
+        <div class="hand-control">
+            <strong>Right Hand:</strong><br>
+            • Move hand to position the effect<br>
+            • Pinch (thumb to index) to control size
+        </div>
+        <div class="hand-control">
+            <strong>Left Hand:</strong><br>
+            • Move left/right to change colors<br>
+            • Movement speed controls energy level
+        </div>
+        <div class="hand-control">
+            <strong>Keyboard:</strong><br>
+            • Press SPACE to change effects<br>
+            • Press 'D' to toggle debug info<br>
+            • Press 'R' to toggle recording
+        </div>
+        <div class="hand-control">
+            <strong>Recording:</strong><br>
+            • Click the "Start Recording" button or press 'R'<br>
+            • Recording will save as MP4 when supported by your browser<br>
+            • Otherwise saves as WebM that can be converted online
+        </div>
+    </div>
+    <div id="camera-permission">
+        <h3>Camera Access Required</h3>
+        <p>This application needs access to your camera to track your hands.</p>
+        <button id="request-camera">Allow Camera Access</button>
+    </div>
+    
+    <script>
+    // Debug helper for camera access
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM loaded, initializing camera checks");
+        const cameraStatus = document.getElementById('camera-status');
+        const cameraPermission = document.getElementById('camera-permission');
+        const requestCameraBtn = document.getElementById('request-camera');
+        
+        // Check camera permission
+        navigator.permissions.query({name: 'camera'}).then(permissionStatus => {
+            console.log("Camera permission status:", permissionStatus.state);
+            cameraStatus.textContent = "Camera: " + permissionStatus.state;
+            
+            if (permissionStatus.state === 'denied') {
+                cameraPermission.style.display = 'block';
+            }
+        });
+        
+        // Manual camera request
+        requestCameraBtn.addEventListener('click', function() {
+            navigator.mediaDevices.getUserMedia({video: true})
+                .then(stream => {
+                    console.log("Camera access granted manually");
+                    cameraStatus.textContent = "Camera: granted (manual)";
+                    cameraPermission.style.display = 'none';
+                    stream.getTracks().forEach(track => track.stop());
+                    window.location.reload();
+                })
+                .catch(err => {
+                    console.error("Camera access error:", err);
+                    cameraStatus.textContent = "Camera error: " + err.message;
+                });
+        });
+    });
+    </script>
+    
+    <script src="sketch.js"></script>
+</body>
+</html> 

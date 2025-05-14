@@ -43,7 +43,7 @@ const palette = [
 // MediaPipe Hands
 let mpHands;
 let camera;
-const videoElement = document.getElementById("video");
+let videoElement;
 
 // Additional effect parameters
 let webcamTexture;
@@ -58,30 +58,75 @@ const NUM_PARTICLES = 300;
 let capture;
 
 function setupMediaPipe() {
-  mpHands = new Hands({
-    locateFile: (file) => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-    },
-  });
+  console.log("Setting up MediaPipe...");
 
-  mpHands.setOptions({
-    maxNumHands: 2,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5,
-  });
+  // Make sure we get the video element after the DOM is loaded
+  videoElement = document.getElementById("video");
 
-  mpHands.onResults(onResults);
+  if (!videoElement) {
+    console.error("Video element not found!");
+    return;
+  }
 
-  camera = new Camera(videoElement, {
-    onFrame: async () => {
-      await mpHands.send({ image: videoElement });
-    },
-    width: 640,
-    height: 480,
-  });
+  console.log("Video element found:", videoElement);
 
-  camera.start();
+  // Update debug panel if it exists
+  const cameraStatus = document.getElementById("camera-status");
+  if (cameraStatus) {
+    cameraStatus.textContent = "Camera: Initializing MediaPipe...";
+  }
+
+  try {
+    mpHands = new Hands({
+      locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+      },
+    });
+
+    mpHands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+
+    mpHands.onResults((results) => {
+      console.log(
+        "Hand detection results:",
+        results.multiHandLandmarks ? results.multiHandLandmarks.length : 0
+      );
+      onResults(results);
+    });
+
+    camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await mpHands.send({ image: videoElement });
+      },
+      width: 640,
+      height: 480,
+    });
+
+    // Start camera with error handling
+    camera
+      .start()
+      .then(() => {
+        console.log("Camera started successfully");
+        if (cameraStatus) {
+          cameraStatus.textContent = "Camera: Running";
+        }
+      })
+      .catch((error) => {
+        console.error("Error starting camera:", error);
+        if (cameraStatus) {
+          cameraStatus.textContent = "Camera Error: " + error.message;
+        }
+      });
+  } catch (error) {
+    console.error("Error in setupMediaPipe:", error);
+    if (cameraStatus) {
+      cameraStatus.textContent = "MediaPipe Error: " + error.message;
+    }
+  }
 }
 
 function onResults(results) {
@@ -107,6 +152,7 @@ function onResults(results) {
 }
 
 function setup() {
+  console.log("P5.js setup function called");
   createCanvas(windowWidth, windowHeight, WEBGL);
   colorMode(HSB);
   textureMode(NORMAL);
@@ -158,11 +204,18 @@ function setup() {
     });
   }
 
-  setupMediaPipe();
+  // Wait a small delay to ensure DOM is fully ready
+  setTimeout(() => {
+    setupMediaPipe();
 
-  // Set up debug panel
-  const debugPanel = document.getElementById("debug-panel");
-  debugPanel.style.display = debugMode ? "block" : "none";
+    // Set up debug panel
+    const debugPanel = document.getElementById("debug-panel");
+    if (debugPanel) {
+      debugPanel.style.display = debugMode ? "block" : "none";
+    } else {
+      console.error("Debug panel element not found");
+    }
+  }, 1000);
 }
 
 function draw() {
@@ -178,6 +231,31 @@ function draw() {
   // Update debug panel
   if (debugMode) {
     updateDebugPanel();
+  }
+
+  // Always draw some default effect even if hands are not detected
+  if (hands.length === 0) {
+    resetMatrix();
+    translate(0, 0, 0);
+
+    // Draw a default effect with auto rotation
+    push();
+    rotateY(rotationAngle);
+    rotateX(rotationAngle * 0.5);
+
+    // Change effects automatically when no hands detected
+    // Comment out this automatic effect change
+    /*
+    if (frameCount % 300 === 0) {
+      currentEffect = (currentEffect + 1) % totalEffects;
+    }
+    */
+
+    // Draw the current effect
+    drawCurrentEffect();
+    pop();
+
+    return;
   }
 
   // Process hands and effects
@@ -198,52 +276,26 @@ function draw() {
         map(palmPos.y, 0, height, -height / 2, height / 2),
         0
       );
+
+      // Right hand control (if available)
+      if (hands.length > 1 && hands[1]) {
+        const rightPalmVel = createVector(
+          hands[1][0].x - hands[1][0].x,
+          hands[1][0].y - hands[1][0].y
+        );
+
+        // Calculate energy level based on hand movement speed
+        const rightHandSpeed = rightPalmVel.mag();
+        energyLevel = lerp(energyLevel, rightHandSpeed * 10, 0.1);
+
+        // Map X position of right hand to color shift
+        colorShift = map(hands[1][0].x, 0, width, 0, 255);
+      }
     }
 
-    // Right hand controls color and energy
-    if (hands[1]) {
-      const palmPos = hands[1][0];
-      const indexPos = hands[1][2];
-
-      // Update color based on hand x position
-      colorShift = map(palmPos.x, 0, width, 0, 255);
-
-      // Calculate energy level based on hand movement
-      const handSpeed = p5.Vector.dist(palmPos, indexPos);
-      energyLevel = map(handSpeed, 0, 100, 0, 1);
-    }
+    // Draw the current effect
+    drawCurrentEffect();
   }
-
-  // Draw current effect
-  push();
-  rotateY(rotationAngle);
-  switch (currentEffect) {
-    case CRYSTAL_EFFECT:
-      drawCrystalEffect();
-      break;
-    case NEBULA_EFFECT:
-      drawNebulaEffect();
-      break;
-    case VORTEX_EFFECT:
-      drawVortexEffect();
-      break;
-    case GALAXY_EFFECT:
-      drawGalaxyEffect();
-      break;
-    case FIREFLIES_EFFECT:
-      drawFirefliesEffect();
-      break;
-    case MIRROR_KALEIDOSCOPE:
-      drawMirrorKaleidoscope();
-      break;
-    case PIXEL_DISPLACE:
-      drawPixelDisplace();
-      break;
-    case PARTICLE_STORM:
-      drawParticleStorm();
-      break;
-  }
-  pop();
 }
 
 function drawCrystalEffect() {
@@ -536,28 +588,81 @@ function drawParticleStorm() {
   pop();
 }
 
+function drawCurrentEffect() {
+  push();
+  rotateY(rotationAngle);
+
+  switch (currentEffect) {
+    case CRYSTAL_EFFECT:
+      drawCrystalEffect();
+      break;
+    case NEBULA_EFFECT:
+      drawNebulaEffect();
+      break;
+    case VORTEX_EFFECT:
+      drawVortexEffect();
+      break;
+    case GALAXY_EFFECT:
+      drawGalaxyEffect();
+      break;
+    case FIREFLIES_EFFECT:
+      drawFirefliesEffect();
+      break;
+    case MIRROR_KALEIDOSCOPE:
+      drawMirrorKaleidoscope();
+      break;
+    case PIXEL_DISPLACE:
+      drawPixelDisplace();
+      break;
+    case PARTICLE_STORM:
+      drawParticleStorm();
+      break;
+  }
+
+  pop();
+}
+
 function updateDebugPanel() {
-  const debugPanel = document.getElementById("debug-panel");
-  const effectNames = [
-    "Crystal",
-    "Nebula",
-    "Vortex",
-    "Galaxy",
-    "Fireflies",
-    "Mirror Kaleidoscope",
-    "Pixel Displace",
-    "Particle Storm",
-  ];
+  try {
+    const fpsDiv = document.getElementById("fps");
+    const handsCountDiv = document.getElementById("hands-count");
+    const currentEffectDiv = document.getElementById("current-effect");
+    const controlsDiv = document.getElementById("controls");
 
-  let recordingStatus = isRecording ? "RECORDING" : "";
+    if (!fpsDiv || !handsCountDiv || !currentEffectDiv || !controlsDiv) {
+      console.error("Debug panel elements not found");
+      return;
+    }
 
-  debugPanel.innerHTML = `
-    FPS: ${floor(frameRate())}<br>
-    Hands: ${hands.length}<br>
-    Effect: ${effectNames[currentEffect]}<br>
-    Energy: ${floor(energyLevel * 100)}%<br>
-    ${recordingStatus}
-  `;
+    // Update FPS
+    const fps = Math.round(frameRate());
+    fpsDiv.innerHTML = `FPS: ${fps}`;
+
+    // Update hands count
+    handsCountDiv.innerHTML = `Hands detected: ${hands.length}`;
+
+    // Update current effect
+    const effectNames = [
+      "Crystal Effect",
+      "Nebula Effect",
+      "Vortex Effect",
+      "Galaxy Effect",
+      "Fireflies Effect",
+      "Mirror Kaleidoscope",
+      "Pixel Displace",
+      "Particle Storm",
+    ];
+    currentEffectDiv.innerHTML = `Effect: ${effectNames[currentEffect]}`;
+
+    // Update controls info
+    controlsDiv.innerHTML = `
+      Scale: ${Math.round(effectScale)}<br>
+      Energy: ${Math.round(energyLevel * 100)}%<br>
+      Color: ${Math.round((colorShift / 255) * 360)}°
+    `;
+  } catch (err) {
+    console.error("Error updating debug panel:", err);
+  }
 }
 
 function keyPressed() {

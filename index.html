@@ -3,102 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Effects - Interactive 3D Visualization</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <title>Hand Motion Controller - Interactive Visual Experience</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
             min-height: 100vh;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;    
+            text-align: center;
+            line-height: 1.6;
         }
-        #debug-panel {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 15px;
-            border-radius: 5px;
-            display: none;
-            z-index: 1000;
+        .container {
+            max-width: 900px;
+            padding: 40px 20px;
+            animation: fadeIn 1s ease-in;
         }
-        #instructions {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 20px;
+        h1 {
+            font-size: 3.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 30px;
+            color: #ccccff;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            max-width: 700px;
+        }
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 40px 0;
+        }
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             border-radius: 10px;
-            font-size: 14px;
-            line-height: 1.5;
-            max-width: 300px;
-            z-index: 1000;
+            padding: 20px;
+            width: 250px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        #instructions h3 {
-            margin: 0 0 10px 0;
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .feature h3 {
             color: #00ffff;
+            margin-top: 0;
         }
-        .hand-control {
-            margin-bottom: 15px;
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            margin-top: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
-        #video {
-            display: none;
+        .cta-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        .requirements {
+            margin-top: 40px;
+            font-size: 0.9rem;
+            color: #aaa;
+            max-width: 600px;
+        }
+        
+        /* Particles animation in background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .particle {
             position: absolute;
-            right: 10px;
-            bottom: 10px;
-            width: 160px;
-            height: 120px;
-            border-radius: 8px;
-            z-index: 1000;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            animation: float 15s infinite linear;
         }
-        .show-video #video {
-            display: block;
+        @keyframes float {
+            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(100px) rotate(360deg); opacity: 0; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
-    <video id="video" playsinline></video>
-    <div id="debug-panel">
-        <div id="fps"></div>
-        <div id="hands-count"></div>
-        <div id="current-effect"></div>
-        <div id="controls"></div>
+    <div class="particles" id="particles"></div>
+    <div class="container">
+        <h1>Hand Motion Controller</h1>
+        <h2>Control mesmerizing visual effects with your hands</h2>
+        
+        <p>
+            Experience the future of interaction technology with our hand-tracking visual controller.
+            Create stunning visual effects in real-time using nothing but your hands and a webcam.
+        </p>
+        
+        <div class="features">
+            <div class="feature">
+                <h3>Interactive Effects</h3>
+                <p>Control 8 different stunning visual effects through natural hand movements</p>
+            </div>
+            <div class="feature">
+                <h3>Gesture Controls</h3>
+                <p>Pinch, move, and gesture naturally to manipulate size, position, and appearance</p>
+            </div>
+            <div class="feature">
+                <h3>HD Recording</h3>
+                <p>Capture your visual creations in HD video to share with others</p>
+            </div>
+        </div>
+        
+        <a href="app.html" class="cta-button">Launch Experience</a>
+        
+        <div class="requirements">
+            <p>Requirements: Modern browser (Chrome/Firefox/Edge recommended), webcam access, and your hands!</p>
+        </div>
     </div>
-    <div id="instructions">
-        <h3>Hand Controls</h3>
-        <div class="hand-control">
-            <strong>Right Hand:</strong><br>
-            • Move hand to position the effect<br>
-            • Pinch (thumb to index) to control size
-        </div>
-        <div class="hand-control">
-            <strong>Left Hand:</strong><br>
-            • Move left/right to change colors<br>
-            • Movement speed controls energy level
-        </div>
-        <div class="hand-control">
-            <strong>Keyboard:</strong><br>
-            • Press SPACE to change effects<br>
-            • Press 'D' to toggle debug info<br>
-            • Press 'R' to toggle recording
-        </div>
-        <div class="hand-control">
-            <strong>Recording:</strong><br>
-            • Click the "Start Recording" button or press 'R'<br>
-            • Recording will save as MP4 when supported by your browser<br>
-            • Otherwise saves as WebM that can be converted online
-        </div>
-    </div>
-    <script src="sketch.js"></script>
+    
+    <script>
+        // Create animated particles in background
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 30;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            
+            // Random size
+            const size = Math.random() * 5 + 1;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            
+            // Random position
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            
+            // Random animation delay
+            particle.style.animationDelay = `${Math.random() * 15}s`;
+            
+            // Random background
+            const hue = Math.random() * 60 + 180; // Blue to purple range
+            particle.style.background = `hsla(${hue}, 100%, 70%, ${Math.random() * 0.5 + 0.3})`;
+            
+            particlesContainer.appendChild(particle);
+        }
+    </script>
 </body>
 </html> 
