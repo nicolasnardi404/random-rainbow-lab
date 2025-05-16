@@ -1006,6 +1006,37 @@ function keyPressed() {
       window.persistenceEnabled ? "ON" : "OFF"
     );
 
+    // If in shader mode, cycle shaders instead of effects
+    const mode =
+      window.selectedBackgroundMode !== undefined
+        ? window.selectedBackgroundMode
+        : backgroundMode;
+    if (mode === 0) {
+      currentShader = (currentShader + 1) % shaders.length;
+      window.selectedBackground = currentShader;
+      // Visual feedback for shader change
+      const shaderNames = [
+        "Cyberpunk Grid",
+        "Nebula Flow",
+        "Matrix Rain",
+        "Liquid RGB",
+        "Fractal Noise",
+      ];
+      const notification = createDiv(`Shader: ${shaderNames[currentShader]}`);
+      notification.position(width / 2 - 100, 50);
+      notification.style("background-color", "rgba(0,0,0,0.7)");
+      notification.style("color", "white");
+      notification.style("padding", "10px 20px");
+      notification.style("border-radius", "5px");
+      notification.style("font-size", "16px");
+      notification.style("z-index", "2000");
+      notification.style("text-align", "center");
+      setTimeout(() => {
+        notification.remove();
+      }, 2000);
+      return;
+    }
+
     // Change effect on spacebar press with better feedback
     currentEffect = (currentEffect + 1) % totalEffects;
 

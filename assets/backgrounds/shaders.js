@@ -23,22 +23,30 @@ const SHADER_SOURCES = {
     void main() {
       // Normalized coordinates (0 to 1)
       vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+      uv.y = 1.0 - uv.y;
       
-      // Transform coordinates
-      uv.y = 1.0 - uv.y; // Flip Y
+      // --- HAND CONTROLS ---
+      float zoom = mix(0.7, 2.0, u_handDist);
+      float rot = u_handRot * 2.0;
+      float colorShift = u_handPos.x;
+      float speed = mix(0.2, 2.0, u_handPos.y);
       
-      // Keep aspect ratio but don't center (which creates circular bounds)
-      vec2 adjustedUv = uv;
-      adjustedUv.x *= u_resolution.x / u_resolution.y;
+      // 3D perspective/tilt and parallax
+      float tilt = mix(-0.7, 0.7, u_handPos.y); // up/down tilts grid
+      float parallax = (u_handPos.x - 0.5) * 0.5;
+      float perspective = 1.0 + 0.5 * (uv.y - 0.5) * tilt;
       
-      // Use hand position to shift grid
-      adjustedUv.x += (u_handPos.x - 0.5) * 0.5;
-      adjustedUv.y += (u_handPos.y - 0.5) * 0.5;
+      // Apply zoom, rotation, and perspective
+      vec2 adjustedUv = uv - 0.5;
+      float s = sin(rot);
+      float c = cos(rot);
+      adjustedUv = mat2(c, -s, s, c) * adjustedUv * zoom;
+      adjustedUv.x *= perspective;
+      adjustedUv += 0.5;
+      adjustedUv.x += parallax;
       
-      // Use hand rotation to modulate time
-      float t = u_time * (0.2 + u_handRot * 0.2);
-      
-      // Use hand distance to change grid size
+      // Modulate time by speed
+      float t = u_time * speed;
       float gridSize = mix(10.0, 40.0, u_handDist);
       
       // Create perspective grid effect
@@ -47,30 +55,18 @@ const SHADER_SOURCES = {
       
       // Main grid
       float gridVal = grid(gridUv, gridSize);
-      
-      // Distant grid
       float gridVal2 = grid(gridUv * 0.5, gridSize * 0.5) * 0.5;
-      
-      // Moving horizontal lines
-      float lines = abs(sin(uv.y * 30.0 + u_time)) < 0.1 ? 1.0 : 0.0;
+      float lines = abs(sin(uv.y * 30.0 + t)) < 0.1 ? 1.0 : 0.0;
       lines *= 0.2;
-      
-      // Scanline effect
-      float scanline = sin(uv.y * 100.0 + u_time * 5.0) * 0.5 + 0.5;
+      float scanline = sin(uv.y * 100.0 + t * 5.0) * 0.5 + 0.5;
       scanline = pow(scanline, 10.0) * 0.3;
-      
-      // Glow gradient - use y value directly instead of length
       float glow = uv.y + 0.3;
-      vec3 color = mix(u_color1, u_color2, glow);
-      
-      // Combine effects
+      vec3 color = mix(u_color1, u_color2, mod(glow + colorShift, 1.0));
       color += vec3(gridVal + gridVal2 + lines + scanline);
-      
-      // Vignette that doesn't limit to a circle
-      float vignette = (1.0 - adjustedUv.x * adjustedUv.x) * (1.0 - adjustedUv.y * adjustedUv.y);
-      vignette = smoothstep(0.0, 0.4, vignette);
-      color *= 0.7 + 0.3 * vignette;
-      
+      // Remove vignette/shadow for a cleaner look
+      // float vignette = (1.0 - adjustedUv.x * adjustedUv.x) * (1.0 - adjustedUv.y * adjustedUv.y);
+      // vignette = smoothstep(0.0, 0.4, vignette);
+      // color *= 0.7 + 0.3 * vignette;
       gl_FragColor = vec4(color, 1.0);
     }
   `,
@@ -118,43 +114,42 @@ const SHADER_SOURCES = {
     
     void main() {
       vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-      
-      // Use uv directly without centering
-      vec2 p = uv;
-      // Adjust aspect ratio but don't center
+      // --- HAND CONTROLS ---
+      float zoom = mix(0.7, 2.0, u_handDist);
+      float rot = u_handRot * 2.0;
+      float colorShift = u_handPos.x;
+      float speed = mix(0.2, 2.0, u_handPos.y);
+      // 3D parallax/depth
+      float parallax = (u_handPos.x - 0.5) * 0.3;
+      float tilt = mix(-0.5, 0.5, u_handPos.y);
+      // Layered clouds with parallax
+      vec2 p = uv - 0.5;
+      float s = sin(rot);
+      float c = cos(rot);
+      p = mat2(c, -s, s, c) * p * zoom;
+      p.x += parallax;
+      p.y += tilt * (p.x);
+      p += 0.5;
       p.x *= u_resolution.x / u_resolution.y;
-      
-      float time = u_time * (0.1 + u_handRot * 0.2);
-      
-      // Hand X controls nebula color blend, Y controls star density, dist controls turbulence
-      float colorMix = mix(0.0, 1.0, u_handPos.x);
-      float starDensity = mix(0.97, 0.995, u_handPos.y);
+      float time = u_time * speed;
+      float colorMix = colorShift;
       float turbulence = mix(0.5, 2.0, u_handDist);
-      
-      // Create layered noise for nebula effect
+      // Layer 1 (background)
       float n1 = snoise(p * 1.0 * turbulence + time * 0.1);
-      float n2 = snoise(p * 2.0 * turbulence - time * 0.2);
-      float n3 = snoise(p * 4.0 * turbulence + time * 0.3);
-      float n4 = snoise(p * 8.0 * turbulence - time * 0.4);
-      
-      float nebula = n1 * 0.5 + n2 * 0.25 + n3 * 0.15 + n4 * 0.1;
-      nebula = nebula * 0.5 + 0.5; // Normalize to 0-1
-      
-      // Stars
-      float stars = step(starDensity, snoise(p * 50.0)) * 0.5;
-      stars += step(starDensity + 0.01, snoise(p * 100.0 + time)) * 0.5;
-      
-      // Color gradient - use hand X to blend colors
-      vec3 color = mix(u_color1, u_color2, colorMix * (uv.y + nebula * 0.3));
-      
-      // Add stars
+      // Layer 2 (mid)
+      float n2 = snoise((p + 0.1) * 2.0 * turbulence - time * 0.15);
+      // Layer 3 (foreground, more parallax)
+      float n3 = snoise((p + parallax * 0.2) * 4.0 * turbulence + time * 0.25);
+      float nebula = n1 * 0.5 + n2 * 0.3 + n3 * 0.2;
+      nebula = nebula * 0.5 + 0.5;
+      float stars = step(0.98, snoise(p * 50.0)) * 0.5;
+      stars += step(0.99, snoise(p * 100.0 + time)) * 0.5;
+      vec3 color = mix(u_color1, u_color2, mod(colorMix + nebula * 0.3, 1.0));
       color += stars;
-      
-      // Vignette that doesn't restrict to a circle
-      float vignette = (1.0 - p.x * p.x * 0.5) * (1.0 - p.y * p.y * 0.5);
-      vignette = smoothstep(0.0, 0.5, vignette);
-      color *= 0.7 + 0.3 * vignette;
-      
+      // Remove vignette/shadow for a cleaner look
+      // float vignette = (1.0 - p.x * p.x * 0.5) * (1.0 - p.y * p.y * 0.5);
+      // vignette = smoothstep(0.0, 0.5, vignette);
+      // color *= 0.7 + 0.3 * vignette;
       gl_FragColor = vec4(color, 1.0);
     }
   `,
@@ -177,25 +172,35 @@ const SHADER_SOURCES = {
     void main() {
       vec2 uv = gl_FragCoord.xy / u_resolution.xy;
       
-      // Hand X controls rain speed, Y controls color, rot for glitch
-      float rainSpeed = mix(0.2, 2.0, u_handPos.x);
-      float colorShift = u_handPos.y;
-      float glitchiness = abs(sin(u_handRot * 2.0));
+      // --- HAND CONTROLS ---
+      float zoom = mix(0.7, 2.0, u_handDist);
+      float rot = u_handRot * 2.0;
+      float colorShift = u_handPos.x;
+      float speed = mix(0.2, 2.0, u_handPos.y);
+      
+      // Apply zoom and rotation
+      vec2 p = uv - 0.5;
+      float s = sin(rot);
+      float c = cos(rot);
+      p = mat2(c, -s, s, c) * p * zoom;
+      p += 0.5;
       
       // Grid
       vec2 grid = vec2(80.0, 40.0);
-      vec2 ipos = floor(uv * grid);
+      vec2 ipos = floor(p * grid);
       
       // Falling speed based on column
-      float speed = 1.0 + random(vec2(ipos.x, 0.0)) * 5.0 * rainSpeed;
+      float rainSpeed = speed;
+      float baseSpeed = 1.0 + random(vec2(ipos.x, 0.0)) * 5.0 * rainSpeed;
       float offset = random(ipos) * 100.0;
-      float falling = fract(offset - u_time * speed * 0.1);
+      float falling = fract(offset - u_time * baseSpeed * 0.1);
       
       // Character intensity varies by position
       float intensity = random(ipos + floor(u_time * 0.2));
       intensity = pow(intensity, 0.8);
       
       // Add "glitch" effect, modulated by hand rotation
+      float glitchiness = abs(sin(rot));
       float glitch = step(0.98 - glitchiness * 0.2, random(vec2(ipos.x, floor(u_time * 20.0))));
       
       // Decide which characters are visible
@@ -204,7 +209,7 @@ const SHADER_SOURCES = {
       // Create vertical fade
       float fade = pow(falling, 2.0);
       
-      // Final color, modulate hue by hand Y
+      // Final color, modulate hue by hand X
       vec3 baseColor = mix(u_color1, vec3(0.0, 1.0, 0.0), colorShift);
       vec3 color = baseColor * isOn * fade;
       color += baseColor * glitch * 0.8; // Add glitch effect
@@ -226,6 +231,12 @@ const SHADER_SOURCES = {
     uniform vec2 u_handPos;
     uniform float u_handRot;
     uniform float u_handDist;
+    
+    // --- HAND CONTROLS ---
+    float zoom = mix(0.7, 2.0, u_handDist);
+    float rot = u_handRot * 2.0;
+    float colorShift = u_handPos.x;
+    float speed = mix(0.2, 2.0, u_handPos.y);
     
     // Noise functions
     vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -260,21 +271,28 @@ const SHADER_SOURCES = {
       // Normalized pixel coordinates (0 to 1)
       vec2 uv = gl_FragCoord.xy / u_resolution.xy;
       
-      float swirl = (u_handPos.x - 0.5) * 2.0;
-      float swirl2 = (u_handPos.y - 0.5) * 2.0;
+      // Apply zoom and rotation
+      vec2 p = uv - 0.5;
+      float s = sin(rot);
+      float c = cos(rot);
+      p = mat2(c, -s, s, c) * p * zoom;
+      p += 0.5;
+      
+      float swirl = (colorShift - 0.5) * 2.0;
+      float swirl2 = (speed - 0.5) * 2.0;
       float colorSep = mix(0.01, 0.05, u_handDist);
-      float noiseSpeed = 0.2 + u_handRot * 0.5;
+      float noiseSpeed = 0.2 + rot * 0.5;
       float time = u_time * noiseSpeed;
       
       // Offset for the RGB channels - increased slightly for more visible effect
-      float r_offset = colorSep * snoise(uv + vec2(time * 0.5 + swirl, swirl2));
-      float g_offset = colorSep * snoise(uv + vec2(time * 0.3 - swirl, time * 0.2 + swirl2));
-      float b_offset = colorSep * snoise(uv + vec2(swirl, time * 0.6 - swirl2));
+      float r_offset = colorSep * snoise(p + vec2(time * 0.5 + swirl, swirl2));
+      float g_offset = colorSep * snoise(p + vec2(time * 0.3 - swirl, time * 0.2 + swirl2));
+      float b_offset = colorSep * snoise(p + vec2(swirl, time * 0.6 - swirl2));
       
       // Create distorted UV coordinates for each channel
-      vec2 uv_r = uv + vec2(r_offset, r_offset * 0.5);
-      vec2 uv_g = uv + vec2(g_offset, g_offset * 0.5);
-      vec2 uv_b = uv + vec2(b_offset, b_offset * 0.5);
+      vec2 uv_r = p + vec2(r_offset, r_offset * 0.5);
+      vec2 uv_g = p + vec2(g_offset, g_offset * 0.5);
+      vec2 uv_b = p + vec2(b_offset, b_offset * 0.5);
       
       // Generate liquid-like patterns for each channel
       float r = smoothstep(0.4, 0.6, snoise(uv_r * 3.0 + time * vec2(0.2, 0.1)));
@@ -285,11 +303,11 @@ const SHADER_SOURCES = {
       vec3 color = vec3(r, g, b);
       
       // Add some small-scale noise for texture
-      float noise = snoise(uv * 50.0 + time) * 0.05;
+      float noise = snoise(p * 50.0 + time) * 0.05;
       color += noise;
       
       // Apply a rectangular vignette instead of circular one to ensure full screen coverage
-      float vignette = (1.0 - uv.x * uv.x * 0.5) * (1.0 - uv.y * uv.y * 0.5);
+      float vignette = (1.0 - p.x * p.x * 0.5) * (1.0 - p.y * p.y * 0.5);
       vignette = smoothstep(0.0, 0.7, vignette);
       color *= 0.7 + 0.3 * vignette;
       
@@ -310,6 +328,12 @@ const SHADER_SOURCES = {
     uniform vec2 u_handPos;
     uniform float u_handRot;
     uniform float u_handDist;
+    
+    // --- HAND CONTROLS ---
+    float zoom = mix(0.7, 2.0, u_handDist);
+    float rot = u_handRot * 2.0;
+    float colorShift = u_handPos.x;
+    float speed = mix(0.2, 2.0, u_handPos.y);
     
     // Simplex noise
     vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -359,14 +383,17 @@ const SHADER_SOURCES = {
     void main() {
       vec2 uv = gl_FragCoord.xy / u_resolution.xy;
       
-      // Hand X/Y pan, dist zoom, rot color cycle
-      vec2 p = uv + (u_handPos - 0.5) * 0.7;
+      // Apply zoom and rotation
+      vec2 p = uv - 0.5;
+      float s = sin(rot);
+      float c = cos(rot);
+      p = mat2(c, -s, s, c) * p * zoom;
+      p += 0.5;
+      p += (colorShift - 0.5) * 0.7;
       p.x *= u_resolution.x / u_resolution.y;
-      float zoom = mix(0.7, 2.0, u_handDist);
-      p = (p - 0.5) * zoom + 0.5;
       
       // Time variables
-      float time = u_time * 0.05 + u_handRot * 2.0;
+      float time = u_time * 0.05 * speed + rot * 2.0;
       
       // Create warped coordinates
       vec2 warp = vec2(
@@ -384,7 +411,7 @@ const SHADER_SOURCES = {
       float n = fbm(p + warp, 6);
       
       // Color mapping using the noise value, modulate with hand rotation
-      float colorCycle = 0.5 + 0.5 * sin(u_handRot * 2.0 + u_time);
+      float colorCycle = 0.5 + 0.5 * sin(rot * 2.0 + u_time);
       vec3 color;
       if (n < 0.4) {
         color = mix(u_color1, u_color2, n * 2.5 * colorCycle);
