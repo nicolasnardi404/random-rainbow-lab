@@ -342,6 +342,16 @@ function draw() {
   // Draw background first - this will fill entire screen
   drawBackground();
 
+  // If in shader mode, skip effects and persistence
+  const mode =
+    window.selectedBackgroundMode !== undefined
+      ? window.selectedBackgroundMode
+      : backgroundMode;
+  if (mode === 0) {
+    // Only shader background, no effects or persistence
+    return;
+  }
+
   // Always draw the persistence canvas (to show existing trails)
   push();
   // In WEBGL mode, we need to reset the coordinate system and translate to draw full screen
@@ -493,6 +503,29 @@ function drawBackground() {
         thisShader.setUniform("u_color2", window.shaderColor2);
       if (window.shaderColor3)
         thisShader.setUniform("u_color3", window.shaderColor3);
+
+      // --- Hand control uniforms ---
+      let handPos = [0.5, 0.5]; // fallback center
+      let handRot = 0.0;
+      let handDist = 0.5; // fallback scale
+      if (hands.length > 0 && hands[0]) {
+        // Palm position normalized
+        handPos = [
+          constrain(hands[0][0].x / width, 0, 1),
+          constrain(hands[0][0].y / height, 0, 1),
+        ];
+        // Rotation
+        handRot = handRotation;
+        // Scale (thumb-index distance, normalized)
+        const thumb = hands[0][1];
+        const indexF = hands[0][2];
+        const dist = p5.Vector.dist(thumb, indexF);
+        handDist = constrain((dist - 50) / 150, 0, 1); // map 50-200px to 0-1
+      }
+      thisShader.setUniform("u_handPos", handPos);
+      thisShader.setUniform("u_handRot", handRot);
+      thisShader.setUniform("u_handDist", handDist);
+      // --- End hand control uniforms ---
 
       // Draw shader as full-screen rectangle - make even larger to guarantee coverage
       rectMode(CENTER);
