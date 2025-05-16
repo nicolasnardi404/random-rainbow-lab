@@ -290,6 +290,7 @@
             <button class="bg-button active" data-mode="0">SHADER</button>
             <button class="bg-button" data-mode="1">EFFECTS</button>
             <button class="bg-button" data-mode="2">VIDEO</button>
+            <button class="bg-button" data-mode="4">UPLOAD</button>
         </div>
         
         <select id="bg-select" class="bg-select"></select>
@@ -381,6 +382,8 @@
                 document.querySelectorAll('.color-picker').forEach(picker => {
                     picker.style.display = 'block';
                 });
+                bgSelect.style.display = 'block';
+                document.getElementById('bg-upload-label').style.display = 'none';
             } else if (mode === 2) { // Video
                 // Use BACKGROUND_VIDEO_SOURCES from image_info.js
                 if (typeof BACKGROUND_VIDEO_SOURCES !== 'undefined') {
@@ -394,10 +397,15 @@
                 document.querySelectorAll('.color-picker').forEach(picker => {
                     picker.style.display = 'none';
                 });
+                bgSelect.style.display = 'block';
+                document.getElementById('bg-upload-label').style.display = 'none';
+            } else if (mode === 4) { // Upload
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.style.display = 'none';
+                });
+                bgSelect.style.display = 'none';
+                document.getElementById('bg-upload-label').style.display = 'block';
             }
-            
-            // Show/hide upload based on mode
-            document.getElementById('bg-upload-label').style.display = mode === 3 ? 'block' : 'none';
             
             // Update window variables to communicate with p5js
             window.selectedBackgroundMode = mode;
@@ -427,8 +435,26 @@
             const file = e.target.files[0];
             if (file) {
                 const url = URL.createObjectURL(file);
-                window.customBackgroundURL = url;
-                window.customBackgroundType = file.type.startsWith('video/') ? 'video' : 'image';
+                
+                // Store the uploaded file URL based on the current mode
+                const currentMode = window.selectedBackgroundMode;
+                if (currentMode === 3) {
+                    window.customBackgroundURL = url;
+                    window.customBackgroundType = file.type.startsWith('video/') ? 'video' : 'image';
+                } else if (currentMode === 4) {
+                    // For upload mode, only accept videos
+                    if (file.type.startsWith('video/')) {
+                        window.uploadedVideoURL = url;
+                        
+                        // Reset the uploadedVideo in sketch.js to force reload
+                        if (typeof uploadedVideo !== 'undefined') {
+                            uploadedVideo = null;
+                        }
+                    } else {
+                        alert('Please upload a video file for the UPLOAD mode');
+                        return;
+                    }
+                }
                 
                 // Show a status message
                 const statusMsg = document.createElement('div');

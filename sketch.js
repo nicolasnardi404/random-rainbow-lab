@@ -24,8 +24,8 @@ let rotationSpeed = 0;
 
 // Background parameters
 let currentBackground = 0;
-let backgroundMode = 0; // 0: shader, 2: video, 3: user upload
-const BACKGROUND_MODES = ["Shader", "Video", "Custom"];
+let backgroundMode = 0; // 0: shader, 2: video, 3: custom, 4: upload
+const BACKGROUND_MODES = ["Shader", "Video", "Custom", "Upload"];
 let backgroundVideos = [];
 let userBackground = null;
 let backgroundShaders = [];
@@ -39,6 +39,13 @@ const SHADER_NAMES = [
 ];
 let shaderTime = 0;
 let bgSelectBtn;
+
+// Upload video specific constants and variables
+let uploadedVideo = null;
+const UPLOAD_EFFECT_MIRROR = 8;
+const UPLOAD_EFFECT_PIXEL = 9;
+const UPLOAD_EFFECT_PARTICLE = 10;
+const totalEffects = 11;
 
 // Global persistence variables (not per-effect)
 let persistCanvas;
@@ -54,7 +61,6 @@ const FIREFLIES_EFFECT = 4;
 const MIRROR_KALEIDOSCOPE = 5;
 const PIXEL_DISPLACE = 6;
 const PARTICLE_STORM = 7;
-const totalEffects = 8;
 
 // Colors
 const palette = [
@@ -88,7 +94,6 @@ let customBgType;
 
 // --- VIDEO SOURCE HANDLING ---
 let videoSource = "webcam"; // 'webcam' or 'upload'
-let uploadedVideo = null;
 
 // --- MODE SELECTION ---
 window.selectedMode = window.selectedMode || "shader"; // 'shader', 'effect', 'video'
@@ -106,6 +111,13 @@ const VIDEO_EFFECTS_LIST = [
   MIRROR_KALEIDOSCOPE,
   PIXEL_DISPLACE,
   PARTICLE_STORM,
+];
+
+// UPLOAD: Effects specifically for uploaded videos
+const UPLOAD_EFFECTS_LIST = [
+  UPLOAD_EFFECT_MIRROR,
+  UPLOAD_EFFECT_PIXEL,
+  UPLOAD_EFFECT_PARTICLE,
 ];
 
 function setupMediaPipe() {
@@ -462,6 +474,7 @@ function draw() {
   // Only show effects from the current mode
   let allowedEffects = EFFECTS_LIST;
   if (mode === 2) allowedEffects = VIDEO_EFFECTS_LIST;
+  if (mode === 4) allowedEffects = UPLOAD_EFFECTS_LIST;
   if (!allowedEffects.includes(currentEffect)) {
     currentEffect = allowedEffects[0];
   }
@@ -577,10 +590,38 @@ function drawBackground() {
     } else if (mode === 3) {
       // Custom upload
       handleCustomBackground();
+    } else if (mode === 4) {
+      // Upload video mode
+      handleUploadedVideo();
     }
   }
 
   pop();
+}
+
+function handleUploadedVideo() {
+  // Check if there's an uploaded video
+  if (window.uploadedVideoURL) {
+    const url = window.uploadedVideoURL;
+
+    if (!uploadedVideo) {
+      // Create the uploaded video
+      uploadedVideo = createVideo(url);
+      uploadedVideo.loop();
+      uploadedVideo.hide();
+      uploadedVideo.volume(0);
+
+      // Reset the URL so we don't reload on each frame
+      window.uploadedVideoURL = null;
+
+      console.log("Uploaded video loaded");
+    } else if (uploadedVideo.loadedmetadata) {
+      // Draw the uploaded video to fill the entire screen
+      texture(uploadedVideo);
+      rectMode(CORNER);
+      rect(0, 0, width, height);
+    }
+  }
 }
 
 function handleCustomBackground() {
@@ -965,6 +1006,15 @@ function drawCurrentEffect() {
     case PARTICLE_STORM:
       drawParticleStorm();
       break;
+    case UPLOAD_EFFECT_MIRROR:
+      drawMirrorKaleidoscope();
+      break;
+    case UPLOAD_EFFECT_PIXEL:
+      drawPixelDisplace();
+      break;
+    case UPLOAD_EFFECT_PARTICLE:
+      drawParticleStorm();
+      break;
   }
 
   pop();
@@ -1000,6 +1050,9 @@ function updateDebugPanel() {
       "Mirror Kaleidoscope",
       "Pixel Displace",
       "Particle Storm",
+      "Mirror Kaleidoscope (Upload)",
+      "Pixel Displace (Upload)",
+      "Particle Storm (Upload)",
     ];
     currentEffectDiv.innerHTML = `Effect: ${effectNames[currentEffect]}`;
 
@@ -1071,6 +1124,7 @@ function keyPressed() {
     // Cycle through effects in the current mode
     let allowedEffects = EFFECTS_LIST;
     if (mode === 2) allowedEffects = VIDEO_EFFECTS_LIST;
+    if (mode === 4) allowedEffects = UPLOAD_EFFECTS_LIST;
     let idx = allowedEffects.indexOf(currentEffect);
     currentEffect = allowedEffects[(idx + 1) % allowedEffects.length];
 
@@ -1084,6 +1138,9 @@ function keyPressed() {
       "Mirror Kaleidoscope",
       "Pixel Displace",
       "Particle Storm",
+      "Mirror Kaleidoscope (Upload)",
+      "Pixel Displace (Upload)",
+      "Particle Storm (Upload)",
     ];
 
     console.log("Effect changed to:", effectNames[currentEffect]);
@@ -1350,6 +1407,14 @@ function getCurrentVideoTexture() {
       return uploadedVideo;
     } else if (capture) {
       return capture;
+    }
+  } else if (window.selectedBackgroundMode === 4) {
+    // For upload mode, always use the uploaded video
+    if (uploadedVideo && uploadedVideo.loadedmetadata) {
+      return uploadedVideo;
+    } else {
+      // If no video is uploaded or it's not ready yet
+      return null;
     }
   }
   return null;
