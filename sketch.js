@@ -86,6 +86,28 @@ let bgVideos = [];
 let customBg;
 let customBgType;
 
+// --- VIDEO SOURCE HANDLING ---
+let videoSource = "webcam"; // 'webcam' or 'upload'
+let uploadedVideo = null;
+
+// --- MODE SELECTION ---
+window.selectedMode = window.selectedMode || "shader"; // 'shader', 'effect', 'video'
+
+// EFFECTS: Only core hand-controlled generative effects (no webcam/video, no Neon Particles, Digital Waves, etc.)
+const EFFECTS_LIST = [
+  CRYSTAL_EFFECT,
+  NEBULA_EFFECT,
+  VORTEX_EFFECT,
+  GALAXY_EFFECT,
+  FIREFLIES_EFFECT,
+];
+// VIDEO: Only video-based effects (Mirror Kaleidoscope, Pixel Displace, Particle Storm)
+const VIDEO_EFFECTS_LIST = [
+  MIRROR_KALEIDOSCOPE,
+  PIXEL_DISPLACE,
+  PARTICLE_STORM,
+];
+
 function setupMediaPipe() {
   console.log("Setting up MediaPipe...");
 
@@ -346,7 +368,7 @@ function draw() {
   const mode =
     window.selectedBackgroundMode !== undefined
       ? window.selectedBackgroundMode
-      : backgroundMode;
+      : 0; // default to shader
   if (mode === 0) {
     // Only shader background, no effects or persistence
     return;
@@ -436,6 +458,13 @@ function draw() {
     updatePersistenceCanvas();
   }
   // Note: We no longer clear the persistence canvas when the effect is disabled
+
+  // Only show effects from the current mode
+  let allowedEffects = EFFECTS_LIST;
+  if (mode === 2) allowedEffects = VIDEO_EFFECTS_LIST;
+  if (!allowedEffects.includes(currentEffect)) {
+    currentEffect = allowedEffects[0];
+  }
 }
 
 function updatePersistenceCanvas() {
@@ -731,9 +760,10 @@ function drawFirefliesEffect() {
 
 function drawMirrorKaleidoscope() {
   push();
-  if (capture.loadedmetadata) {
+  if (getCurrentVideoTexture() && getCurrentVideoTexture().loadedmetadata) {
     // Calculate dimensions to maintain aspect ratio
-    let aspectRatio = capture.height / capture.width;
+    let aspectRatio =
+      getCurrentVideoTexture().height / getCurrentVideoTexture().width;
     let w = effectScale * 2;
     let h = w * aspectRatio;
 
@@ -747,7 +777,7 @@ function drawMirrorKaleidoscope() {
       tint(colorShift % 255, 255, 255, 200);
 
       // Draw mirrored webcam segment
-      texture(capture);
+      texture(getCurrentVideoTexture());
       plane(w, h);
 
       pop();
@@ -758,13 +788,14 @@ function drawMirrorKaleidoscope() {
 
 function drawPixelDisplace() {
   push();
-  if (capture.loadedmetadata) {
+  if (getCurrentVideoTexture() && getCurrentVideoTexture().loadedmetadata) {
     // Make pixel size more responsive to hand movements and use effectScale
     let pSize = pixelSize * (1 + energyLevel * 2) * (effectScale / 200);
     let displacementAmount = 50 * (1 + energyLevel * 2); // Displacement based on energy
 
     // Use effectScale to control the coverage area
-    let aspectRatio = capture.height / capture.width;
+    let aspectRatio =
+      getCurrentVideoTexture().height / getCurrentVideoTexture().width;
     let w = effectScale * 1.5; // Scale the effect area with hand movement
     let h = w * aspectRatio;
 
@@ -784,7 +815,7 @@ function drawPixelDisplace() {
         translate(x + xOff, y + yOff, (x + y) * 0.1 * energyLevel); // Add Z-axis displacement
 
         // Sample webcam texture
-        texture(capture);
+        texture(getCurrentVideoTexture());
         plane(pSize, pSize);
 
         pop();
@@ -798,7 +829,7 @@ function drawParticleStorm() {
   push();
   noStroke();
 
-  if (capture.loadedmetadata) {
+  if (getCurrentVideoTexture() && getCurrentVideoTexture().loadedmetadata) {
     // Scale the effect with effectScale
     let effectRadius = effectScale;
 
@@ -878,7 +909,7 @@ function drawParticleStorm() {
       // Scale the particle size with effectScale
       let pSize = particle.size * (1 + speed * 0.2) * (effectScale / 200);
       textureMode(NORMAL);
-      texture(capture);
+      texture(getCurrentVideoTexture());
 
       // Rotate particle to face camera - more rotation with energy
       let angle =
@@ -1010,7 +1041,7 @@ function keyPressed() {
     const mode =
       window.selectedBackgroundMode !== undefined
         ? window.selectedBackgroundMode
-        : backgroundMode;
+        : 0;
     if (mode === 0) {
       currentShader = (currentShader + 1) % shaders.length;
       window.selectedBackground = currentShader;
@@ -1037,8 +1068,11 @@ function keyPressed() {
       return;
     }
 
-    // Change effect on spacebar press with better feedback
-    currentEffect = (currentEffect + 1) % totalEffects;
+    // Cycle through effects in the current mode
+    let allowedEffects = EFFECTS_LIST;
+    if (mode === 2) allowedEffects = VIDEO_EFFECTS_LIST;
+    let idx = allowedEffects.indexOf(currentEffect);
+    currentEffect = allowedEffects[(idx + 1) % allowedEffects.length];
 
     // Show effect change notification
     const effectNames = [
@@ -1308,3 +1342,15 @@ function clearPersistenceCanvas() {
 
 // Make the function globally available
 window.clearPersistenceCanvas = clearPersistenceCanvas;
+
+// In video-based effects, use getCurrentVideoTexture() as the texture source
+function getCurrentVideoTexture() {
+  if (window.selectedBackgroundMode === 2) {
+    if (videoSource === "upload" && uploadedVideo) {
+      return uploadedVideo;
+    } else if (capture) {
+      return capture;
+    }
+  }
+  return null;
+}

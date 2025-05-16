@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function () {
   window.persistenceEnabled = false; // Persistence effect disabled by default
 
   // Background type buttons
-  const bgTypeButtons = document.querySelectorAll(".bg-type-btn");
+  const bgTypeButtons = document.querySelectorAll(".bg-button");
   const bgSelect = document.getElementById("bg-select");
   const uploadSection = document.getElementById("upload-section");
   const persistenceToggle = document.getElementById("ghost-toggle");
@@ -66,18 +66,17 @@ document.addEventListener("DOMContentLoaded", function () {
       window.selectedBackgroundMode = mode;
 
       // Show/hide appropriate UI elements
-      if (mode === 3) {
-        // Custom upload
-        bgSelect.style.display = "none";
-        uploadSection.style.display = "block";
-        document.getElementById("shader-colors").style.display = "none";
-      } else {
-        bgSelect.style.display = "block";
-        uploadSection.style.display = "none";
-        document.getElementById("shader-colors").style.display =
-          mode === 0 ? "block" : "none";
-
-        // Populate options
+      // Only show color pickers for SHADER mode
+      const shaderColors = document.getElementById("shader-colors");
+      if (shaderColors) {
+        shaderColors.style.display = mode === 0 ? "block" : "none";
+      }
+      // Only show bgSelect for SHADER mode (if you want to select shaders)
+      bgSelect.style.display = mode === 0 ? "block" : "none";
+      // Hide upload section for all modes (video upload is handled in sketch.js for video effects)
+      if (uploadSection) uploadSection.style.display = "none";
+      // Populate options only for SHADER mode
+      if (mode === 0) {
         populateBackgroundOptions(mode);
       }
     });
@@ -171,9 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize UI
   populateBackgroundOptions(0); // Start with shaders
-  document
-    .querySelector('.bg-type-btn[data-mode="0"]')
-    .classList.add("selected");
+  document.querySelector('.bg-button[data-mode="0"]').classList.add("selected");
   if (document.getElementById("shader-colors")) {
     document.getElementById("shader-colors").style.display = "block";
   }
