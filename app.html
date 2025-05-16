@@ -274,6 +274,43 @@
             transform: scale(1.05);
             box-shadow: 0 0 5px rgba(255, 0, 255, 0.8);
         }
+        
+        /* Video source toggle styles */
+        .source-toggles {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .source-toggle {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .source-toggle:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+        }
+        
+        .source-toggle.active {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: black;
+            border-color: #fff;
+            font-weight: bold;
+        }
+        
+        .upload-status {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #00ffff;
+        }
     </style>
 </head>
 <body class="show-video">
@@ -290,13 +327,20 @@
             <button class="bg-button active" data-mode="0">SHADER</button>
             <button class="bg-button" data-mode="1">EFFECTS</button>
             <button class="bg-button" data-mode="2">VIDEO</button>
-            <button class="bg-button" data-mode="4">UPLOAD</button>
         </div>
         
         <select id="bg-select" class="bg-select"></select>
         
-        <input type="file" id="bg-upload" accept="image/*,video/*">
-        <label for="bg-upload" id="bg-upload-label">Upload Custom Background</label>
+        <!-- Video Source Controls - Only visible in Video mode -->
+        <div id="video-source-controls" style="display: none; margin-top: 10px;">
+            <div class="source-toggles">
+                <button id="webcam-source" class="source-toggle active">Webcam</button>
+                <button id="upload-source" class="source-toggle">Upload Video</button>
+            </div>
+            <input type="file" id="bg-upload" accept="video/*">
+            <label for="bg-upload" id="bg-upload-label">Upload Video File</label>
+            <div id="upload-status" class="upload-status" style="display: none;"></div>
+        </div>
         
         <div class="color-pickers">
             <input type="color" class="color-picker" id="color1" value="#ff00ff">
@@ -384,6 +428,7 @@
                 });
                 bgSelect.style.display = 'block';
                 document.getElementById('bg-upload-label').style.display = 'none';
+                document.getElementById('video-source-controls').style.display = 'none';
             } else if (mode === 2) { // Video
                 // Use BACKGROUND_VIDEO_SOURCES from image_info.js
                 if (typeof BACKGROUND_VIDEO_SOURCES !== 'undefined') {
@@ -398,13 +443,18 @@
                     picker.style.display = 'none';
                 });
                 bgSelect.style.display = 'block';
-                document.getElementById('bg-upload-label').style.display = 'none';
-            } else if (mode === 4) { // Upload
+                document.getElementById('video-source-controls').style.display = 'block';
+                // Make sure webcam source is active by default
+                document.getElementById('webcam-source').classList.add('active');
+                document.getElementById('upload-source').classList.remove('active');
+                videoSource = 'webcam';
+            } else {
+                // Effects mode or others
                 document.querySelectorAll('.color-picker').forEach(picker => {
                     picker.style.display = 'none';
                 });
                 bgSelect.style.display = 'none';
-                document.getElementById('bg-upload-label').style.display = 'block';
+                document.getElementById('video-source-controls').style.display = 'none';
             }
             
             // Update window variables to communicate with p5js
@@ -430,6 +480,39 @@
             window.selectedBackground = parseInt(this.value);
         });
         
+        // Handle video source toggles
+        const webcamSourceBtn = document.getElementById('webcam-source');
+        const uploadSourceBtn = document.getElementById('upload-source');
+        
+        webcamSourceBtn.addEventListener('click', function() {
+            // Activate webcam source
+            webcamSourceBtn.classList.add('active');
+            uploadSourceBtn.classList.remove('active');
+            videoSource = 'webcam';
+            window.videoSource = 'webcam';
+            
+            // Update UI
+            const uploadStatus = document.getElementById('upload-status');
+            if (uploadStatus) uploadStatus.style.display = 'none';
+        });
+        
+        uploadSourceBtn.addEventListener('click', function() {
+            // Activate upload source
+            uploadSourceBtn.classList.add('active');
+            webcamSourceBtn.classList.remove('active');
+            videoSource = 'upload';
+            window.videoSource = 'upload';
+            
+            // If no video uploaded yet, prompt for upload
+            if (!uploadedVideo) {
+                document.getElementById('bg-upload').click();
+            } else {
+                // Show the current upload status
+                const uploadStatus = document.getElementById('upload-status');
+                if (uploadStatus) uploadStatus.style.display = 'block';
+            }
+        });
+        
         // Handle file upload
         bgUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -438,35 +521,36 @@
                 
                 // Store the uploaded file URL based on the current mode
                 const currentMode = window.selectedBackgroundMode;
-                if (currentMode === 3) {
+                
+                if (currentMode === 2 && file.type.startsWith('video/')) {
+                    // For video mode, set the uploaded video URL
+                    window.uploadedVideoURL = url;
+                    
+                    // Switch to uploaded video source
+                    videoSource = 'upload';
+                    window.videoSource = 'upload';
+                    webcamSourceBtn.classList.remove('active');
+                    uploadSourceBtn.classList.add('active');
+                    
+                    // Reset the uploadedVideo in sketch.js to force reload
+                    if (typeof uploadedVideo !== 'undefined') {
+                        uploadedVideo = null;
+                    }
+                    
+                    // Show a status message
+                    const uploadStatus = document.getElementById('upload-status');
+                    if (uploadStatus) {
+                        uploadStatus.textContent = `Uploaded: ${file.name}`;
+                        uploadStatus.style.display = 'block';
+                    }
+                } else if (currentMode === 3) {
+                    // For custom background mode
                     window.customBackgroundURL = url;
                     window.customBackgroundType = file.type.startsWith('video/') ? 'video' : 'image';
-                } else if (currentMode === 4) {
-                    // For upload mode, only accept videos
-                    if (file.type.startsWith('video/')) {
-                        window.uploadedVideoURL = url;
-                        
-                        // Reset the uploadedVideo in sketch.js to force reload
-                        if (typeof uploadedVideo !== 'undefined') {
-                            uploadedVideo = null;
-                        }
-                    } else {
-                        alert('Please upload a video file for the UPLOAD mode');
-                        return;
-                    }
+                } else if (!file.type.startsWith('video/')) {
+                    alert('Please upload a video file for the video mode');
+                    return;
                 }
-                
-                // Show a status message
-                const statusMsg = document.createElement('div');
-                statusMsg.textContent = `Uploaded: ${file.name}`;
-                statusMsg.style.cssText = 'margin-top:5px;font-size:11px;color:#00ffff;';
-                
-                // Remove any existing status message
-                const oldStatus = document.querySelector('.upload-status');
-                if (oldStatus) oldStatus.remove();
-                
-                statusMsg.className = 'upload-status';
-                this.parentNode.appendChild(statusMsg);
             }
         });
         
