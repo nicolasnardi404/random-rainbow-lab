@@ -47,7 +47,7 @@ let sliceDirection = 0; // 0: horizontal, 1: vertical, 2: both
 let sliceColor = 0; // 0: off, 1: on
 let sliceTime = 0;
 let kaleidoscopeSegments = 8;
-let kaleidoscopeRotation = 0;
+let kaleidoscopeRotation = 0.03;
 let kaleidoscopeZoom = 1;
 let kaleidoscopeMirror = 0; // 0: regular, 1: alternating
 let kaleidoscopeAngle = 0;
@@ -104,6 +104,16 @@ function draw() {
       console.log(
         `Video element state: readyState=${videoElement.readyState}, paused=${videoElement.paused}, width=${videoElement.videoWidth}, height=${videoElement.videoHeight}`
       );
+    }
+  }
+
+  // Update kaleidoscope angle if that effect is active
+  if (currentEffect === "kaleidoscope" && isPlaying) {
+    // Update rotation angle
+    kaleidoscopeAngle += kaleidoscopeRotation * effectIntensity * 0.05;
+    // Keep the angle in a reasonable range
+    if (kaleidoscopeAngle > Math.PI * 2) {
+      kaleidoscopeAngle -= Math.PI * 2;
     }
   }
 
@@ -1456,6 +1466,72 @@ function applyKaleidoscopeEffect() {
   const centerY = height / 2;
   const radius = Math.min(width, height) / 2;
 
+  // Create a background canvas first
+  let bgCanvas = document.createElement("canvas");
+  bgCanvas.width = width;
+  bgCanvas.height = height;
+  let bgCtx = bgCanvas.getContext("2d");
+
+  // Create a colorful background with animated gradient
+  const gradientTime = frameCount * 0.01;
+
+  // Create a radial gradient
+  const gradient = bgCtx.createRadialGradient(
+    centerX,
+    centerY,
+    0,
+    centerX,
+    centerY,
+    radius * 1.5
+  );
+
+  // Add color stops with shifting hues based on time
+  gradient.addColorStop(0, `hsl(${(gradientTime * 30) % 360}, 70%, 20%)`);
+  gradient.addColorStop(
+    0.5,
+    `hsl(${(gradientTime * 30 + 120) % 360}, 60%, 15%)`
+  );
+  gradient.addColorStop(1, `hsl(${(gradientTime * 30 + 240) % 360}, 80%, 10%)`);
+
+  // Fill the background
+  bgCtx.fillStyle = gradient;
+  bgCtx.fillRect(0, 0, width, height);
+
+  // Add subtle circular patterns
+  bgCtx.save();
+  bgCtx.globalCompositeOperation = "lighten";
+
+  const patternCount = 3;
+  for (let i = 0; i < patternCount; i++) {
+    const patternAngle =
+      (gradientTime + (i * Math.PI * 2) / patternCount) % (Math.PI * 2);
+    const distance = radius * 0.8;
+    const x = centerX + Math.cos(patternAngle) * distance;
+    const y = centerY + Math.sin(patternAngle) * distance;
+
+    const patternGradient = bgCtx.createRadialGradient(
+      x,
+      y,
+      0,
+      x,
+      y,
+      radius * 0.5
+    );
+
+    patternGradient.addColorStop(
+      0,
+      `hsla(${(gradientTime * 50 + i * 120) % 360}, 90%, 30%, 0.5)`
+    );
+    patternGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+    bgCtx.fillStyle = patternGradient;
+    bgCtx.beginPath();
+    bgCtx.arc(x, y, radius * 0.7, 0, Math.PI * 2);
+    bgCtx.fill();
+  }
+
+  bgCtx.restore();
+
   // Determine number of segments based on intensity
   const segments = Math.max(
     3,
@@ -1463,12 +1539,29 @@ function applyKaleidoscopeEffect() {
   );
   const segmentAngle = (Math.PI * 2) / segments;
 
+  // Calculate dynamic zoom if rotation is active
+  let dynamicZoom = kaleidoscopeZoom;
+  if (kaleidoscopeRotation > 0) {
+    // Add subtle pulsing effect based on sin wave
+    dynamicZoom =
+      kaleidoscopeZoom *
+      (1 + 0.1 * Math.sin(frameCount * 0.05) * effectIntensity);
+  }
+
   // Create a temporary canvas for source
   let tempCanvas = document.createElement("canvas");
   tempCanvas.width = width;
   tempCanvas.height = height;
   let tempCtx = tempCanvas.getContext("2d");
+
+  // Draw the video to the temp canvas with rotation and zoom
+  tempCtx.save();
+  tempCtx.translate(centerX, centerY);
+  tempCtx.rotate(kaleidoscopeAngle);
+  tempCtx.scale(dynamicZoom, dynamicZoom);
+  tempCtx.translate(-centerX, -centerY);
   tempCtx.drawImage(videoElement, 0, 0, width, height);
+  tempCtx.restore();
 
   // Create a second canvas for full output
   let outputCanvas = document.createElement("canvas");
@@ -1476,8 +1569,8 @@ function applyKaleidoscopeEffect() {
   outputCanvas.height = height;
   let outputCtx = outputCanvas.getContext("2d");
 
-  // Clear the output canvas
-  outputCtx.clearRect(0, 0, width, height);
+  // Draw the background to the output canvas first
+  outputCtx.drawImage(bgCanvas, 0, 0);
 
   // Draw each segment
   for (let i = 0; i < segments; i++) {
@@ -1488,6 +1581,11 @@ function applyKaleidoscopeEffect() {
     outputCtx.save();
     outputCtx.translate(centerX, centerY);
     outputCtx.rotate(angle);
+
+    // Apply mirror effect to alternating segments if enabled
+    if (kaleidoscopeMirror === 1 && i % 2 === 1) {
+      outputCtx.scale(-1, 1);
+    }
 
     // Create a triangular clipping path
     outputCtx.beginPath();
@@ -1510,6 +1608,31 @@ function applyKaleidoscopeEffect() {
     // Restore context
     outputCtx.restore();
   }
+
+  // Add subtle glow around the edges of the kaleidoscope
+  outputCtx.save();
+  outputCtx.globalCompositeOperation = "lighten";
+
+  // Create a radial gradient for the glow
+  const glowGradient = outputCtx.createRadialGradient(
+    centerX,
+    centerY,
+    radius * 0.9,
+    centerX,
+    centerY,
+    radius * 1.1
+  );
+  glowGradient.addColorStop(
+    0,
+    `hsla(${(gradientTime * 30 + 60) % 360}, 100%, 50%, 0.5)`
+  );
+  glowGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+  outputCtx.fillStyle = glowGradient;
+  outputCtx.beginPath();
+  outputCtx.arc(centerX, centerY, radius * 1.1, 0, Math.PI * 2);
+  outputCtx.fill();
+  outputCtx.restore();
 
   // Draw to main canvas
   drawingContext.drawImage(outputCanvas, 0, 0);
@@ -2015,9 +2138,9 @@ function updateParameterSliders(effect = currentEffect) {
         id: "kaleidoscope-rotation",
         label: "Rotation Speed",
         min: 0,
-        max: 0.1,
-        step: 0.001,
-        value: kaleidoscopeRotation || 0,
+        max: 0.2,
+        step: 0.01,
+        value: kaleidoscopeRotation || 0.03,
         update: (val) => (kaleidoscopeRotation = val),
       },
       {
