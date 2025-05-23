@@ -14,26 +14,50 @@ let isUsingWebcam = false;
 // Effect parameters
 let currentEffect = null;
 let effectIntensity = 0.5; // 0-1 range
-let ghostAlpha = 0.15;
 let glitchIntensity = 0.3;
+let glitchShift = 20;
+let glitchColor = 0.5;
+let glitchBlocks = 0.3;
 let pixelSize = 10;
+let pixelShape = 0; // 0: square, 1: circle, 2: diamond
+let pixelSort = 0; // 0: off, 1: on
 let noiseAmount = 0.2;
+let noiseType = 0; // 0: white, 1: color, 2: film grain, 3: TV static
+let noiseHorizontalLines = 0; // 0: off, 1: on
+let noiseSize = 1;
 let rgbShiftAmount = 5;
+let rgbShiftDirection = 0; // 0: horizontal, 1: vertical, 2: diagonal, 3: radial
+let rgbShiftCycling = 0; // 0: off, 1: on
 let vhsIntensity = 0.4;
+let vhsColorShift = 0.3;
+let vhsNoise = 0.2;
+let vhsLines = 0.3;
 let mirrorMode = 0; // 0: none, 1: horizontal, 2: vertical, 3: quad
+let mirrorOffset = 0;
+let mirrorRotate = 0; // 0: off, 1: on
 let waveAmplitude = 10;
 let waveFrequency = 0.05;
 let waveSpeed = 0.1;
 let wavePhase = 0;
+let waveDirection = 0; // 0: both, 1: horizontal, 2: vertical
+let waveColors = 0; // 0: off, 1: on
 let sliceCount = 20;
 let sliceOffsetMax = 30;
-let sliceDirection = 0; // 0: horizontal, 1: vertical
+let sliceDirection = 0; // 0: horizontal, 1: vertical, 2: both
+let sliceColor = 0; // 0: off, 1: on
 let sliceTime = 0;
+let kaleidoscopeSegments = 8;
+let kaleidoscopeRotation = 0;
+let kaleidoscopeZoom = 1;
+let kaleidoscopeMirror = 0; // 0: regular, 1: alternating
+let kaleidoscopeAngle = 0;
+let invertType = 0; // 0: full, 1: red, 2: green, 3: blue, 4: red+green, 5: green+blue, 6: red+blue
+let invertThreshold = 0; // 0: off, 1: on
+let invertThresholdValue = 0.5; // Threshold value 0-1
+let invertCycle = 0; // 0: off, 1: on
 let bloomThreshold = 0.6;
 let bloomRadius = 8;
 let bloomIntensity = 1.5;
-let kaleidoscopeSegments = 8;
-let kaleidoscopeRadius = 0;
 let scanlineSpacing = 4;
 let scanlineThickness = 1;
 let scanlineIntensity = 0.3;
@@ -380,12 +404,6 @@ function renderFrame() {
         case "rgb_shift":
           applyRGBShiftDirect();
           break;
-        case "ghost":
-          applyGhostDirect();
-          break;
-        case "bloom":
-          applyBloomEffect();
-          break;
         case "pixelate":
           applyPixelateDirect();
           break;
@@ -406,9 +424,6 @@ function renderFrame() {
           break;
         case "kaleidoscope":
           applyKaleidoscopeEffect();
-          break;
-        case "scanlines":
-          applyScanlinesDirect();
           break;
         case "glitch":
           applyGlitchDirect();
@@ -453,34 +468,118 @@ function applyRGBShiftDirect() {
   let greenCtx = greenCanvas.getContext("2d");
   let blueCtx = blueCanvas.getContext("2d");
 
-  // Draw the video to each canvas with respective offsets
-  // Make the shift more noticeable by using the full canvas
-  redCtx.drawImage(
-    videoElement,
-    -rgbShiftAmount * effectIntensity,
-    0,
-    width,
-    height
-  );
-  greenCtx.drawImage(videoElement, 0, 0, width, height);
-  blueCtx.drawImage(
-    videoElement,
-    rgbShiftAmount * effectIntensity,
-    0,
-    width,
-    height
-  );
+  // Update cycling if enabled
+  if (rgbShiftCycling) {
+    rgbShiftDirection = ((frameCount % 240) / 60) | 0; // Cycle through directions every 4 seconds
+  }
+
+  // Calculate shift amount based on effect intensity
+  const shift = rgbShiftAmount * effectIntensity;
+
+  // Apply shifts based on direction mode
+  switch (rgbShiftDirection) {
+    case 0: // Horizontal shift
+      // Red channel shifted left
+      redCtx.drawImage(videoElement, -shift, 0, width, height);
+      // Green channel no shift
+      greenCtx.drawImage(videoElement, 0, 0, width, height);
+      // Blue channel shifted right
+      blueCtx.drawImage(videoElement, shift, 0, width, height);
+      break;
+
+    case 1: // Vertical shift
+      // Red channel shifted up
+      redCtx.drawImage(videoElement, 0, -shift, width, height);
+      // Green channel no shift
+      greenCtx.drawImage(videoElement, 0, 0, width, height);
+      // Blue channel shifted down
+      blueCtx.drawImage(videoElement, 0, shift, width, height);
+      break;
+
+    case 2: // Diagonal shift
+      // Red channel shifted diagonally one way
+      redCtx.drawImage(videoElement, -shift, -shift, width, height);
+      // Green channel no shift
+      greenCtx.drawImage(videoElement, 0, 0, width, height);
+      // Blue channel shifted diagonally the other way
+      blueCtx.drawImage(videoElement, shift, shift, width, height);
+      break;
+
+    case 3: // Radial shift
+      // For radial shift, we'll create a ripple-like effect
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      // Draw original video to each channel
+      redCtx.drawImage(videoElement, 0, 0, width, height);
+      greenCtx.drawImage(videoElement, 0, 0, width, height);
+      blueCtx.drawImage(videoElement, 0, 0, width, height);
+
+      // Get image data for manipulation
+      let redData = redCtx.getImageData(0, 0, width, height);
+      let greenData = greenCtx.getImageData(0, 0, width, height);
+      let blueData = blueCtx.getImageData(0, 0, width, height);
+
+      // Create distortion pattern
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          // Calculate distance from center
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // Calculate angle
+          const angle = Math.atan2(dy, dx);
+
+          // Calculate shift based on distance
+          const redDist = distance - shift;
+          const blueDist = distance + shift;
+
+          // Calculate source positions
+          const redX = Math.floor(centerX + redDist * Math.cos(angle));
+          const redY = Math.floor(centerY + redDist * Math.sin(angle));
+          const blueX = Math.floor(centerX + blueDist * Math.cos(angle));
+          const blueY = Math.floor(centerY + blueDist * Math.sin(angle));
+
+          // Check if within bounds
+          if (
+            redX >= 0 &&
+            redX < width &&
+            redY >= 0 &&
+            redY < height &&
+            blueX >= 0 &&
+            blueX < width &&
+            blueY >= 0 &&
+            blueY < height
+          ) {
+            // Get source indices
+            const destIdx = (y * width + x) * 4;
+            const redSrcIdx = (redY * width + redX) * 4;
+            const blueSrcIdx = (blueY * width + blueX) * 4;
+
+            // Copy red and blue channels from shifted positions
+            redData.data[destIdx] = redData.data[redSrcIdx];
+            blueData.data[destIdx + 2] = blueData.data[blueSrcIdx + 2];
+          }
+        }
+      }
+
+      // Put the modified data back
+      redCtx.putImageData(redData, 0, 0);
+      blueCtx.putImageData(blueData, 0, 0);
+      break;
+  }
+
+  // Extract channels
+  let redData = redCtx.getImageData(0, 0, width, height);
+  let greenData = greenCtx.getImageData(0, 0, width, height);
+  let blueData = blueCtx.getImageData(0, 0, width, height);
 
   // Create a temporary canvas for the final result
   let resultCanvas = document.createElement("canvas");
   resultCanvas.width = width;
   resultCanvas.height = height;
   let resultCtx = resultCanvas.getContext("2d");
-
-  // Extract channels
-  let redData = redCtx.getImageData(0, 0, width, height);
-  let greenData = greenCtx.getImageData(0, 0, width, height);
-  let blueData = blueCtx.getImageData(0, 0, width, height);
 
   // Create combined image
   let resultData = resultCtx.createImageData(width, height);
@@ -530,18 +629,114 @@ function applyPixelateDirect() {
   // Get the context for the main canvas
   let ctx = drawingContext;
 
-  // Apply pixelation by drawing small sections at larger scale
-  for (let y = 0; y < height; y += pSize) {
-    for (let x = 0; x < width; x += pSize) {
-      // Get the color of a pixel
-      let pixel = tempCtx.getImageData(x, y, 1, 1).data;
+  // Clear the canvas
+  ctx.clearRect(0, 0, width, height);
 
-      // Fill a rectangle with that color
-      ctx.fillStyle = `rgba(${pixel[0]}, ${pixel[1]}, ${pixel[2]}, ${
-        pixel[3] / 255
-      })`;
-      ctx.fillRect(x, y, pSize, pSize);
+  // If sorting is enabled, get the entire image data for sorting
+  if (pixelSort) {
+    // Get image data
+    let imageData = tempCtx.getImageData(0, 0, width, height);
+    let pixels = [];
+
+    // Collect pixels (average color for each block)
+    for (let y = 0; y < height; y += pSize) {
+      let row = [];
+      for (let x = 0; x < width; x += pSize) {
+        // Get the color values for this block
+        let r = 0,
+          g = 0,
+          b = 0;
+        let count = 0;
+
+        // Sample a few points to get average color
+        for (let sy = 0; sy < pSize && y + sy < height; sy += 2) {
+          for (let sx = 0; sx < pSize && x + sx < width; sx += 2) {
+            const idx = ((y + sy) * width + (x + sx)) * 4;
+            r += imageData.data[idx];
+            g += imageData.data[idx + 1];
+            b += imageData.data[idx + 2];
+            count++;
+          }
+        }
+
+        // Calculate average
+        if (count > 0) {
+          r = Math.floor(r / count);
+          g = Math.floor(g / count);
+          b = Math.floor(b / count);
+        }
+
+        // Calculate brightness (simple formula)
+        const brightness = (r + g + b) / 3;
+
+        // Store pixel info
+        row.push({
+          x: x,
+          y: y,
+          r: r,
+          g: g,
+          b: b,
+          brightness: brightness,
+        });
+      }
+
+      // Sort row by brightness
+      row.sort((a, b) => a.brightness - b.brightness);
+      pixels.push(row);
     }
+
+    // Now draw the sorted pixels
+    for (let row of pixels) {
+      for (let pixel of row) {
+        ctx.fillStyle = `rgb(${pixel.r}, ${pixel.g}, ${pixel.b})`;
+
+        // Draw the pixel in the selected shape
+        drawPixelShape(ctx, pixel.x, pixel.y, pSize, pixelShape);
+      }
+    }
+  }
+  // Standard pixelation without sorting
+  else {
+    // Apply pixelation by drawing small sections at larger scale
+    for (let y = 0; y < height; y += pSize) {
+      for (let x = 0; x < width; x += pSize) {
+        // Get the color of a pixel
+        let pixel = tempCtx.getImageData(x, y, 1, 1).data;
+
+        // Fill a shape with that color
+        ctx.fillStyle = `rgba(${pixel[0]}, ${pixel[1]}, ${pixel[2]}, ${
+          pixel[3] / 255
+        })`;
+
+        // Draw the pixel in the selected shape
+        drawPixelShape(ctx, x, y, pSize, pixelShape);
+      }
+    }
+  }
+}
+
+// Helper function to draw different pixel shapes
+function drawPixelShape(ctx, x, y, size, shapeType) {
+  switch (shapeType) {
+    case 0: // Square (default)
+      ctx.fillRect(x, y, size, size);
+      break;
+
+    case 1: // Circle
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+
+    case 2: // Diamond
+      ctx.beginPath();
+      ctx.moveTo(x + size / 2, y);
+      ctx.lineTo(x + size, y + size / 2);
+      ctx.lineTo(x + size / 2, y + size);
+      ctx.lineTo(x, y + size / 2);
+      ctx.closePath();
+      ctx.fill();
+      break;
   }
 }
 
@@ -556,36 +751,120 @@ function applyVHSEffectDirect() {
   // Draw the base video
   tempCtx.drawImage(videoElement, 0, 0, width, height);
 
+  // Get the image data for color manipulation
+  let imageData = tempCtx.getImageData(0, 0, width, height);
+  let data = imageData.data;
+
+  // Apply color shift based on the vhsColorShift parameter
+  if (vhsColorShift > 0) {
+    for (let i = 0; i < data.length; i += 4) {
+      // Shift the color channels slightly
+      const shift = vhsColorShift * effectIntensity * 20;
+
+      // Apply color bleeding effect by shifting RGB values
+      data[i] = Math.min(255, data[i] * (1 + vhsColorShift * 0.2)); // Boost red
+      data[i + 1] = data[i + 1]; // Keep green
+      data[i + 2] = Math.max(0, data[i + 2] * (1 - vhsColorShift * 0.1)); // Reduce blue
+    }
+
+    // Put the modified data back
+    tempCtx.putImageData(imageData, 0, 0);
+  }
+
   // Get the main canvas context
   let ctx = drawingContext;
 
-  // Draw the base image to the main canvas
+  // Draw the color-shifted base image to the main canvas
   ctx.drawImage(tempCanvas, 0, 0);
 
-  // Random VHS tracking noise
-  if (Math.random() < 0.05 * vhsIntensity) {
-    const noiseY = Math.random() * height;
-    const noiseHeight = 5 + Math.random() * 10;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-    ctx.fillRect(0, noiseY, width, noiseHeight);
+  // Random VHS tracking noise based on vhsIntensity and vhsNoise parameters
+  if (vhsNoise > 0) {
+    const noiseChance = 0.05 * vhsIntensity * vhsNoise;
+    if (Math.random() < noiseChance) {
+      // Major tracking glitch
+      const glitchY = Math.random() * height;
+      const glitchHeight = 5 + Math.random() * 15;
+      const glitchOffset = (Math.random() * 20 - 10) * vhsIntensity;
+
+      // Draw the static line
+      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.fillRect(0, glitchY, width, glitchHeight);
+
+      // Draw the offset video segment
+      ctx.save();
+      ctx.globalCompositeOperation = "source-atop";
+      ctx.drawImage(
+        tempCanvas,
+        0,
+        glitchY,
+        width,
+        glitchHeight,
+        glitchOffset,
+        glitchY,
+        width,
+        glitchHeight
+      );
+      ctx.restore();
+    }
+
+    // Add random static noise throughout the image
+    if (vhsNoise > 0.3) {
+      // Create a noise layer
+      let noiseCanvas = document.createElement("canvas");
+      noiseCanvas.width = width;
+      noiseCanvas.height = height;
+      let noiseCtx = noiseCanvas.getContext("2d");
+
+      // Draw noise
+      let noiseData = noiseCtx.createImageData(width, height);
+      for (let i = 0; i < noiseData.data.length; i += 4) {
+        if (Math.random() < 0.1 * vhsNoise) {
+          const noiseValue = Math.random() * 255;
+          noiseData.data[i] =
+            noiseData.data[i + 1] =
+            noiseData.data[i + 2] =
+              noiseValue;
+          noiseData.data[i + 3] = Math.random() * 40 * vhsNoise; // Transparency
+        } else {
+          noiseData.data[i + 3] = 0; // Transparent
+        }
+      }
+      noiseCtx.putImageData(noiseData, 0, 0);
+
+      // Overlay the noise
+      ctx.drawImage(noiseCanvas, 0, 0);
+    }
   }
-
-  // Color adjustments (saturation, etc.) directly using filters
-  ctx.filter = `saturate(${1.2 + effectIntensity})`;
-  ctx.filter += ` brightness(${1 + 0.1 * effectIntensity})`;
-  ctx.filter += ` contrast(${1 + 0.2 * effectIntensity})`;
-
-  // Draw the image again with the filters
-  ctx.drawImage(tempCanvas, 0, 0);
-  ctx.filter = "none";
 
   // VHS scanlines
-  ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-  for (let y = 0; y < height; y += 2) {
-    ctx.fillRect(0, y, width, 1);
+  if (vhsLines > 0) {
+    // Overlay scanlines with adjustable intensity
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.1 * vhsLines * effectIntensity})`;
+    const scanlineSpacing = 2 + Math.floor(2 * (1 - vhsLines));
+    for (let y = 0; y < height; y += scanlineSpacing) {
+      ctx.fillRect(0, y, width, 1);
+    }
   }
 
-  // Random horizontal displacement
+  // Add color fringing at the edges
+  if (vhsColorShift > 0.5) {
+    // Draw a subtle color fringe at the edges
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.1 * vhsColorShift;
+
+    // Red fringe on left
+    ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+    ctx.fillRect(0, 0, 5, height);
+
+    // Blue fringe on right
+    ctx.fillStyle = "rgba(0, 0, 255, 0.2)";
+    ctx.fillRect(width - 5, 0, 5, height);
+
+    ctx.restore();
+  }
+
+  // Random horizontal displacement (more likely with higher vhsIntensity)
   if (Math.random() < 0.03 * vhsIntensity * effectIntensity) {
     const scanlineY = Math.floor(Math.random() * height);
     const scanlineHeight = Math.floor(1 + Math.random() * 4);
@@ -607,6 +886,14 @@ function applyVHSEffectDirect() {
       scanlineHeight
     );
   }
+
+  // VHS color adjustments (saturation, etc.)
+  ctx.globalCompositeOperation = "hard-light";
+  ctx.fillStyle = `rgba(120, 120, 255, ${
+    0.05 * vhsColorShift * effectIntensity
+  })`;
+  ctx.fillRect(0, 0, width, height);
+  ctx.globalCompositeOperation = "source-over";
 }
 
 // Direct Noise Effect
@@ -624,13 +911,54 @@ function applyNoiseDirect() {
   let imageData = tempCtx.getImageData(0, 0, width, height);
   let data = imageData.data;
 
-  // Add noise
+  // Add noise based on the noise type
   for (let i = 0; i < data.length; i += 4) {
+    // Apply noise based on probability and type
     if (Math.random() < noiseAmount * effectIntensity) {
-      const noiseValue = Math.random() * 255;
-      data[i] = (data[i] + noiseValue) / 2; // R
-      data[i + 1] = (data[i + 1] + noiseValue) / 2; // G
-      data[i + 2] = (data[i + 2] + noiseValue) / 2; // B
+      // Different noise styles
+      switch (noiseType) {
+        case 0: // Static (white/black)
+          const noiseValue = Math.random() * 255;
+          data[i] = noiseValue; // R
+          data[i + 1] = noiseValue; // G
+          data[i + 2] = noiseValue; // B
+          break;
+
+        case 1: // Color noise
+          data[i] = Math.random() * 255; // R
+          data[i + 1] = Math.random() * 255; // G
+          data[i + 2] = Math.random() * 255; // B
+          break;
+
+        case 2: // Film grain (subtle blend)
+          const grainValue = Math.random() * 255;
+          const blendFactor = 0.3 * effectIntensity;
+          data[i] = data[i] * (1 - blendFactor) + grainValue * blendFactor; // R
+          data[i + 1] =
+            data[i + 1] * (1 - blendFactor) + grainValue * blendFactor; // G
+          data[i + 2] =
+            data[i + 2] * (1 - blendFactor) + grainValue * blendFactor; // B
+          break;
+      }
+    }
+  }
+
+  // Add occasional horizontal lines for TV static if enabled
+  if (noiseType === 0 && noiseHorizontalLines) {
+    const lineCount = Math.floor(5 * effectIntensity);
+    for (let l = 0; l < lineCount; l++) {
+      const y = Math.floor(Math.random() * height);
+      const lineHeight = 1 + Math.floor(Math.random() * 3);
+      const brightness = Math.random() * 255;
+
+      for (let h = 0; h < lineHeight && y + h < height; h++) {
+        for (let x = 0; x < width; x++) {
+          const i = ((y + h) * width + x) * 4;
+          data[i] = brightness; // R
+          data[i + 1] = brightness; // G
+          data[i + 2] = brightness; // B
+        }
+      }
     }
   }
 
@@ -656,17 +984,67 @@ function applyInvertDirect() {
   let imageData = tempCtx.getImageData(0, 0, width, height);
   let data = imageData.data;
 
-  // Apply inversion based on intensity
+  // Apply inversion based on intensity and type
   for (let i = 0; i < data.length; i += 4) {
-    // Interpolate between original and inverted based on effectIntensity
-    data[i] =
-      data[i] * (1 - effectIntensity) + (255 - data[i]) * effectIntensity;
-    data[i + 1] =
-      data[i + 1] * (1 - effectIntensity) +
-      (255 - data[i + 1]) * effectIntensity;
-    data[i + 2] =
-      data[i + 2] * (1 - effectIntensity) +
-      (255 - data[i + 2]) * effectIntensity;
+    // Determine which channels to invert based on invertType
+    switch (invertType) {
+      case 0: // Full invert (all channels)
+        data[i] =
+          data[i] * (1 - effectIntensity) + (255 - data[i]) * effectIntensity; // R
+        data[i + 1] =
+          data[i + 1] * (1 - effectIntensity) +
+          (255 - data[i + 1]) * effectIntensity; // G
+        data[i + 2] =
+          data[i + 2] * (1 - effectIntensity) +
+          (255 - data[i + 2]) * effectIntensity; // B
+        break;
+
+      case 1: // Red channel only
+        data[i] = 255 - data[i];
+        break;
+
+      case 2: // Green channel only
+        data[i + 1] = 255 - data[i + 1];
+        break;
+
+      case 3: // Blue channel only
+        data[i + 2] = 255 - data[i + 2];
+        break;
+
+      case 4: // R+G channels
+        data[i] = 255 - data[i];
+        data[i + 1] = 255 - data[i + 1];
+        break;
+
+      case 5: // G+B channels
+        data[i + 1] = 255 - data[i + 1];
+        data[i + 2] = 255 - data[i + 2];
+        break;
+
+      case 6: // R+B channels
+        data[i] = 255 - data[i];
+        data[i + 2] = 255 - data[i + 2];
+        break;
+    }
+  }
+
+  // Apply threshold inversion if enabled
+  if (invertThreshold) {
+    const threshold = 127 + invertThresholdValue * 127;
+
+    for (let i = 0; i < data.length; i += 4) {
+      // Calculate luminance
+      const luminance =
+        data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+
+      // Apply threshold inversion
+      if (luminance > threshold) {
+        // Invert pixels above threshold
+        data[i] = 255 - data[i];
+        data[i + 1] = 255 - data[i + 1];
+        data[i + 2] = 255 - data[i + 2];
+      }
+    }
   }
 
   // Put the modified image data back
@@ -1289,8 +1667,6 @@ function cycleToNextEffect() {
   const effects = [
     "none",
     "rgb_shift",
-    "ghost",
-    "bloom",
     "pixelate",
     "vhs",
     "noise",
@@ -1298,7 +1674,6 @@ function cycleToNextEffect() {
     "wave",
     "slice",
     "kaleidoscope",
-    "scanlines",
     "glitch",
     "mirror",
   ];
@@ -1360,44 +1735,26 @@ function updateParameterSliders(effect = currentEffect) {
         value: rgbShiftAmount,
         update: (val) => (rgbShiftAmount = val),
       },
-    ],
-    ghost: [
       {
-        id: "ghost-alpha",
-        label: "Ghost Opacity",
-        min: 0,
-        max: 1,
-        step: 0.01,
-        value: ghostAlpha,
-        update: (val) => (ghostAlpha = val),
-      },
-    ],
-    bloom: [
-      {
-        id: "bloom-threshold",
-        label: "Brightness Threshold",
-        min: 0,
-        max: 1,
-        step: 0.01,
-        value: bloomThreshold,
-        update: (val) => (bloomThreshold = val),
-      },
-      {
-        id: "bloom-radius",
-        label: "Bloom Radius",
-        min: 1,
-        max: 30,
-        value: bloomRadius,
-        update: (val) => (bloomRadius = val),
-      },
-      {
-        id: "bloom-intensity",
-        label: "Bloom Intensity",
+        id: "rgb-shift-direction",
+        label: "Direction",
         min: 0,
         max: 3,
-        step: 0.1,
-        value: bloomIntensity,
-        update: (val) => (bloomIntensity = val),
+        step: 1,
+        value: rgbShiftDirection || 0,
+        update: (val) => (rgbShiftDirection = val),
+        valueLabelFunc: (val) =>
+          ["Horizontal", "Vertical", "Diagonal", "Radial"][val],
+      },
+      {
+        id: "rgb-shift-cycling",
+        label: "Auto Cycle",
+        min: 0,
+        max: 1,
+        step: 1,
+        value: rgbShiftCycling || 0,
+        update: (val) => (rgbShiftCycling = val),
+        valueLabelFunc: (val) => ["Off", "On"][val],
       },
     ],
     pixelate: [
@@ -1408,6 +1765,26 @@ function updateParameterSliders(effect = currentEffect) {
         max: 50,
         value: pixelSize,
         update: (val) => (pixelSize = val),
+      },
+      {
+        id: "pixel-shape",
+        label: "Pixel Shape",
+        min: 0,
+        max: 2,
+        step: 1,
+        value: pixelShape || 0,
+        update: (val) => (pixelShape = val),
+        valueLabelFunc: (val) => ["Square", "Circle", "Diamond"][val],
+      },
+      {
+        id: "pixel-sort",
+        label: "Pixel Sort",
+        min: 0,
+        max: 1,
+        step: 1,
+        value: pixelSort || 0,
+        update: (val) => (pixelSort = val),
+        valueLabelFunc: (val) => ["Off", "On"][val],
       },
     ],
     vhs: [
@@ -1420,6 +1797,33 @@ function updateParameterSliders(effect = currentEffect) {
         value: vhsIntensity,
         update: (val) => (vhsIntensity = val),
       },
+      {
+        id: "vhs-color-shift",
+        label: "Color Shift",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        value: vhsColorShift || 0.3,
+        update: (val) => (vhsColorShift = val),
+      },
+      {
+        id: "vhs-noise",
+        label: "Tape Noise",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        value: vhsNoise || 0.2,
+        update: (val) => (vhsNoise = val),
+      },
+      {
+        id: "vhs-lines",
+        label: "Scanlines",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        value: vhsLines || 0.3,
+        update: (val) => (vhsLines = val),
+      },
     ],
     noise: [
       {
@@ -1430,6 +1834,86 @@ function updateParameterSliders(effect = currentEffect) {
         step: 0.01,
         value: noiseAmount,
         update: (val) => (noiseAmount = val),
+      },
+      {
+        id: "noise-type",
+        label: "Noise Type",
+        min: 0,
+        max: 2,
+        step: 1,
+        value: noiseType || 0,
+        update: (val) => (noiseType = val),
+        valueLabelFunc: (val) => ["Static", "Color", "Film Grain"][val],
+      },
+      {
+        id: "noise-horizontal-lines",
+        label: "Horizontal Lines",
+        min: 0,
+        max: 1,
+        step: 1,
+        value: noiseHorizontalLines || 0,
+        update: (val) => (noiseHorizontalLines = val),
+        valueLabelFunc: (val) => ["Off", "On"][val],
+      },
+      {
+        id: "noise-size",
+        label: "Noise Size",
+        min: 1,
+        max: 10,
+        step: 1,
+        value: noiseSize || 1,
+        update: (val) => (noiseSize = val),
+      },
+    ],
+    invert: [
+      {
+        id: "invert-type",
+        label: "Invert Type",
+        min: 0,
+        max: 6,
+        step: 1,
+        value: invertType || 0,
+        update: (val) => (invertType = val),
+        valueLabelFunc: (val) =>
+          [
+            "Full",
+            "Red Only",
+            "Green Only",
+            "Blue Only",
+            "Red+Green",
+            "Green+Blue",
+            "Red+Blue",
+          ][val],
+      },
+      {
+        id: "invert-threshold",
+        label: "Threshold Mode",
+        min: 0,
+        max: 1,
+        step: 1,
+        value: invertThreshold || 0,
+        update: (val) => (invertThreshold = val),
+        valueLabelFunc: (val) => ["Off", "On"][val],
+      },
+      {
+        id: "invert-threshold-value",
+        label: "Threshold Value",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        value: invertThresholdValue || 0.5,
+        update: (val) => (invertThresholdValue = val),
+        visible: () => invertThreshold === 1,
+      },
+      {
+        id: "invert-cycle",
+        label: "Auto Cycle",
+        min: 0,
+        max: 1,
+        step: 1,
+        value: invertCycle || 0,
+        update: (val) => (invertCycle = val),
+        valueLabelFunc: (val) => ["Off", "On"][val],
       },
     ],
     wave: [
@@ -1459,6 +1943,26 @@ function updateParameterSliders(effect = currentEffect) {
         value: waveSpeed,
         update: (val) => (waveSpeed = val),
       },
+      {
+        id: "wave-direction",
+        label: "Direction",
+        min: 0,
+        max: 2,
+        step: 1,
+        value: waveDirection || 0,
+        update: (val) => (waveDirection = val),
+        valueLabelFunc: (val) => ["Both", "Horizontal", "Vertical"][val],
+      },
+      {
+        id: "wave-colors",
+        label: "Color Mode",
+        min: 0,
+        max: 1,
+        step: 1,
+        value: waveColors || 0,
+        update: (val) => (waveColors = val),
+        valueLabelFunc: (val) => ["Off", "On"][val],
+      },
     ],
     slice: [
       {
@@ -1477,6 +1981,26 @@ function updateParameterSliders(effect = currentEffect) {
         value: sliceOffsetMax,
         update: (val) => (sliceOffsetMax = val),
       },
+      {
+        id: "slice-dir-toggle",
+        label: "Direction",
+        min: 0,
+        max: 2,
+        step: 1,
+        value: sliceDirection || 0,
+        update: (val) => (sliceDirection = val),
+        valueLabelFunc: (val) => ["Horizontal", "Vertical", "Both"][val],
+      },
+      {
+        id: "slice-color",
+        label: "Color Shift",
+        min: 0,
+        max: 1,
+        step: 1,
+        value: sliceColor || 0,
+        update: (val) => (sliceColor = val),
+        valueLabelFunc: (val) => ["Off", "On"][val],
+      },
     ],
     kaleidoscope: [
       {
@@ -1487,32 +2011,33 @@ function updateParameterSliders(effect = currentEffect) {
         value: kaleidoscopeSegments,
         update: (val) => (kaleidoscopeSegments = val),
       },
-    ],
-    scanlines: [
       {
-        id: "scanline-spacing",
-        label: "Scanline Spacing",
-        min: 1,
-        max: 20,
-        value: scanlineSpacing,
-        update: (val) => (scanlineSpacing = val),
+        id: "kaleidoscope-rotation",
+        label: "Rotation Speed",
+        min: 0,
+        max: 0.1,
+        step: 0.001,
+        value: kaleidoscopeRotation || 0,
+        update: (val) => (kaleidoscopeRotation = val),
       },
       {
-        id: "scanline-thickness",
-        label: "Scanline Thickness",
-        min: 1,
-        max: 10,
-        value: scanlineThickness,
-        update: (val) => (scanlineThickness = val),
+        id: "kaleidoscope-zoom",
+        label: "Zoom",
+        min: 0.5,
+        max: 2,
+        step: 0.01,
+        value: kaleidoscopeZoom || 1,
+        update: (val) => (kaleidoscopeZoom = val),
       },
       {
-        id: "scanline-intensity",
-        label: "Scanline Intensity",
+        id: "kaleidoscope-mirror",
+        label: "Mirror Mode",
         min: 0,
         max: 1,
-        step: 0.01,
-        value: scanlineIntensity,
-        update: (val) => (scanlineIntensity = val),
+        step: 1,
+        value: kaleidoscopeMirror || 0,
+        update: (val) => (kaleidoscopeMirror = val),
+        valueLabelFunc: (val) => ["Regular", "Alternating"][val],
       },
     ],
     glitch: [
@@ -1524,6 +2049,32 @@ function updateParameterSliders(effect = currentEffect) {
         step: 0.01,
         value: glitchIntensity,
         update: (val) => (glitchIntensity = val),
+      },
+      {
+        id: "glitch-shift",
+        label: "Shift Amount",
+        min: 0,
+        max: 50,
+        value: glitchShift || 20,
+        update: (val) => (glitchShift = val),
+      },
+      {
+        id: "glitch-color",
+        label: "Color Distortion",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        value: glitchColor || 0.5,
+        update: (val) => (glitchColor = val),
+      },
+      {
+        id: "glitch-blocks",
+        label: "Digital Blocks",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        value: glitchBlocks || 0.3,
+        update: (val) => (glitchBlocks = val),
       },
     ],
     mirror: [
@@ -1537,6 +2088,24 @@ function updateParameterSliders(effect = currentEffect) {
         update: (val) => (mirrorMode = val),
         valueLabelFunc: (val) =>
           ["None", "Horizontal", "Vertical", "Quad"][val],
+      },
+      {
+        id: "mirror-offset",
+        label: "Mirror Offset",
+        min: 0,
+        max: 100,
+        value: mirrorOffset || 0,
+        update: (val) => (mirrorOffset = val),
+      },
+      {
+        id: "mirror-rotate",
+        label: "Rotate Segments",
+        min: 0,
+        max: 1,
+        step: 1,
+        value: mirrorRotate || 0,
+        update: (val) => (mirrorRotate = val),
+        valueLabelFunc: (val) => ["Off", "On"][val],
       },
     ],
   };
