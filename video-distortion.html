@@ -100,11 +100,12 @@
         }
         
         .video-column {
-            flex: 0 0 auto;
+            flex: 1 1 auto;
         }
         
         .controls-column {
             flex: 0 0 300px;
+            max-height: 500px;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -115,13 +116,17 @@
             margin: 0 auto;
             z-index: 10;
             position: relative;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         
         #canvas-container {
             position: relative;
             margin: 0 auto;
-            width: 800px;
-            height: 450px;
+            width: 100%;
+            max-width: 900px;
+            height: 500px;
             border: 4px solid #333;
             border-radius: 8px;
             box-shadow: 
@@ -129,10 +134,15 @@
                 0 0 30px rgba(0, 255, 255, 0.5),
                 inset 0 0 30px rgba(0, 0, 0, 0.7);
             overflow: hidden;
+            background: #000;
+            border-image: linear-gradient(45deg, #ff00ff, #00ffff) 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         #upload-container {
-            margin: 0 auto;
+            margin-bottom: 15px;
             padding: 15px;
             background: rgba(0, 0, 0, 0.7);
             border-radius: 8px;
@@ -182,6 +192,8 @@
             padding: 20px;
             width: 100%;
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            max-height: 650px;
+            overflow-y: auto;
         }
         
         .effect-button {
@@ -209,13 +221,13 @@
         }
         
         #keyboard-shortcuts {
-            margin: 20px auto;
-            padding: 15px;
             background: rgba(0, 0, 0, 0.7);
             border-radius: 8px;
             border: 1px solid #00ffff;
-            max-width: 1100px;
-            text-align: left;
+            padding: 15px;
+            width: 100%;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            margin-top: 15px;
         }
         
         #keyboard-shortcuts h3 {
@@ -258,12 +270,13 @@
             font-size: 14px;
             text-align: center;
             border-top: 1px solid #00ffff;
+            z-index: 50;
+            font-family: 'VT323', monospace;
+            text-shadow: 0 0 5px #00ffff;
+            letter-spacing: 1px;
         }
         
         #record-button {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
             background: #ff0066;
             color: white;
             border: none;
@@ -272,6 +285,19 @@
             font-weight: bold;
             cursor: pointer;
             z-index: 100;
+            width: 100%;
+            font-family: 'VT323', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 15px;
+            box-shadow: 0 0 10px rgba(255, 0, 102, 0.5);
+            transition: all 0.2s;
+        }
+        
+        #record-button:hover {
+            background: #ff3385;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 0, 102, 0.7);
         }
         
         @keyframes textFlicker {
@@ -303,8 +329,8 @@
     <div class="container">
         <h1>Video Distortion Laboratory</h1>
         
-        <div style="margin-bottom: 20px;">
-            <a href="index.html" style="color: #00ffff; text-decoration: none; font-size: 1.2rem; background: rgba(0, 0, 0, 0.5); border: 1px solid #00ffff; padding: 5px 15px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);">
+        <div style="margin-bottom: 30px;">
+            <a href="index.html" style="color: #00ffff; text-decoration: none; font-size: 1.2rem; background: rgba(0, 0, 0, 0.6); border: 2px solid #00ffff; padding: 8px 20px; border-radius: 5px; box-shadow: 0 0 15px rgba(0, 255, 255, 0.4); text-transform: uppercase; font-family: 'VT323', monospace; letter-spacing: 1px; text-shadow: 0 0 5px #00ffff; transition: all 0.2s;">
                 ← Back to Home
             </a>
         </div>
@@ -312,18 +338,13 @@
         <div class="main-content">
             <div class="video-column">
                 <div id="canvas-container"></div>
-                
-                <div id="upload-container">
-                    <input type="file" id="video-file" accept="video/*">
-                    <button id="upload-btn" class="upload-button">Upload Video</button>
-                </div>
             </div>
             
             <div class="controls-column">
                 <div id="effect-controls">
-                    <h3 style="color: #00ffff; text-align: center; margin-bottom: 15px;">Select Effect</h3>
+                    <h3 style="color: #00ffff; text-align: center; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 5px #00ffff;">Select Effect</h3>
                     
-                    <select id="effect-dropdown" style="width: 100%; padding: 8px; margin-bottom: 15px; background: #333; color: white; border: 1px solid #444; border-radius: 5px;">
+                    <select id="effect-dropdown" style="width: 100%; padding: 8px; margin-bottom: 15px; background: #222; color: white; border: 1px solid #00ffff; border-radius: 5px; font-family: 'VT323', monospace;">
                         <option value="none">No Effect</option>
                         <option value="rgb_shift">RGB Shift</option>
                         <option value="pixelate">Pixelate</option>
@@ -337,55 +358,62 @@
                         <option value="mirror">Mirror</option>
                     </select>
                     
-                    <button id="webcam-btn" style="width: 100%; background: rgba(0, 100, 255, 0.3); color: white; border: 1px solid #0066ff; border-radius: 5px; padding: 10px; margin-bottom: 15px; cursor: pointer;">
+                    <button id="webcam-btn" style="width: 100%; background: rgba(0, 100, 255, 0.3); color: white; border: 1px solid #0066ff; border-radius: 5px; padding: 10px; margin-bottom: 15px; cursor: pointer; font-family: 'VT323', monospace; text-transform: uppercase; letter-spacing: 1px;">
                         Enable Webcam
                     </button>
                     
                     <div style="margin-bottom: 20px;">
-                        <label for="intensity-slider" style="display: block; margin-bottom: 5px;">
+                        <label for="intensity-slider" style="display: block; margin-bottom: 5px; color: #00ffff; text-shadow: 0 0 3px #00ffff;">
                             Effect Intensity: <span id="intensity-value" style="float: right; color: #00ffff;">50%</span>
                         </label>
-                        <input type="range" id="intensity-slider" min="0" max="1" step="0.01" value="0.5" style="width: 100%;">
+                        <input type="range" id="intensity-slider" min="0" max="1" step="0.01" value="0.5" style="width: 100%; accent-color: #00ffff;">
                     </div>
                     
                     <div id="parameter-sliders" style="margin-top: 15px;"></div>
+                    
+                    <div id="upload-container" style="margin-top: 20px;">
+                        <h3 style="color: #00ffff; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 5px #00ffff;">Load Video</h3>
+                        <input type="file" id="video-file" accept="video/*" style="margin-bottom: 10px;">
+                        <button id="upload-btn" class="upload-button">Upload Video</button>
+                    </div>
+                    
+                    <button id="record-button">Record HD</button>
+                    
+                    <div id="keyboard-shortcuts">
+                        <h3 style="color: #00ffff; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 5px #00ffff;">Keyboard Shortcuts</h3>
+                        <div class="shortcut-grid">
+                            <div class="shortcut-item">
+                                <span class="key">Space</span>
+                                <span>Cycle Effects</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span class="key">P</span>
+                                <span>Play/Pause</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span class="key">W</span>
+                                <span>Toggle Webcam</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span class="key">+</span>
+                                <span>Increase Effect</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span class="key">-</span>
+                                <span>Decrease Effect</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span class="key">R</span>
+                                <span>Toggle Recording</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div id="keyboard-shortcuts">
-            <h3>Keyboard Shortcuts</h3>
-            <div class="shortcut-grid">
-                <div class="shortcut-item">
-                    <span class="key">Space</span>
-                    <span>Cycle Effects</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">P</span>
-                    <span>Play/Pause</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">W</span>
-                    <span>Toggle Webcam</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">+</span>
-                    <span>Increase Effect</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">-</span>
-                    <span>Decrease Effect</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">R</span>
-                    <span>Toggle Recording</span>
-                </div>
-            </div>
-        </div>
+        <div id="status-bar">No video loaded. Upload a video to begin.</div>
     </div>
-    
-    <div id="status-bar">No video loaded. Upload a video to begin.</div>
-    <button id="record-button">Record HD</button>
     
     <script src="video-distortion.js"></script>
 </body>
