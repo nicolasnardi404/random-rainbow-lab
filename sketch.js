@@ -1,7 +1,7 @@
 // Effect parameters
 let hands = [];
 let rotationAngle = 0;
-let debugMode = true;
+let debugMode = false;
 
 // Video recording variables
 let mediaRecorder;
@@ -258,31 +258,11 @@ function setup() {
   persistCanvas = createGraphics(windowWidth, windowHeight);
   persistCanvas.background(0);
 
-  // Create record button with improved styling
-  recordButton = createButton("Record HD");
-  recordButton.position(20, 20);
-  recordButton.mousePressed(toggleRecording);
-  recordButton.style("z-index", "1001");
-  recordButton.style("padding", "10px 15px");
-  recordButton.style("background-color", "#ff0066");
-  recordButton.style("color", "white");
-  recordButton.style("border", "none");
-  recordButton.style("border-radius", "5px");
-  recordButton.style("cursor", "pointer");
-  recordButton.style("font-weight", "bold");
-  recordButton.style("font-size", "14px");
-  recordButton.style("box-shadow", "0 2px 4px rgba(0,0,0,0.2)");
+  // Get the record button from HTML
+  recordButton = select("#record-button");
 
-  // Create recording quality indicator
-  recordingQualityIndicator = createDiv("");
-  recordingQualityIndicator.position(150, 20);
-  recordingQualityIndicator.style("z-index", "1001");
-  recordingQualityIndicator.style("padding", "10px");
-  recordingQualityIndicator.style("color", "white");
-  recordingQualityIndicator.style("background-color", "rgba(0,0,0,0.5)");
-  recordingQualityIndicator.style("border-radius", "5px");
-  recordingQualityIndicator.style("font-size", "14px");
-  recordingQualityIndicator.style("display", "none");
+  // Add click handler to record button
+  recordButton.mousePressed(toggleRecording);
 
   // Create webcam capture for effects
   capture = createCapture(VIDEO);
@@ -1176,17 +1156,21 @@ function windowResized() {
 function toggleRecording() {
   if (!isRecording) {
     startRecording();
-    recordButton.html("■ STOP");
-    recordButton.style("background-color", "#ff0000");
-    recordingQualityIndicator.style("display", "block");
+    recordButton.html("⏹ Stop Recording");
+    recordButton.style("background", "rgba(255, 0, 0, 0.5)");
+    recordButton.style("border-color", "#ff0000");
+    recordButton.style("color", "#ff0000");
+    recordButton.style("box-shadow", "0 0 10px rgba(255, 0, 0, 0.3)");
 
     // Show recording started notification
     showNotification("Recording Started", "#ff0000");
   } else {
     stopRecording();
-    recordButton.html("Record HD");
-    recordButton.style("background-color", "#ff0066");
-    recordingQualityIndicator.style("display", "none");
+    recordButton.html("⏺ Record HD");
+    recordButton.style("background", "rgba(0, 0, 0, 0.5)");
+    recordButton.style("border-color", "#00ffff");
+    recordButton.style("color", "#00ffff");
+    recordButton.style("box-shadow", "0 0 10px rgba(0, 255, 255, 0.3)");
 
     // Show recording stopped notification
     showNotification("Recording Saved", "#00ff00");
@@ -1281,13 +1265,6 @@ function startRecordingWithCanvas(canvas) {
 
   try {
     mediaRecorder = new MediaRecorder(stream, options);
-    // Display quality info
-    const isMP4 = supportedMimeType && supportedMimeType.includes("mp4");
-    const format = isMP4 ? "MP4" : "WebM";
-    const bitrate = Math.round(options.videoBitsPerSecond / 1000000);
-    recordingQualityIndicator.html(
-      `Recording: ${format} @ ${bitrate}Mbps, 60FPS`
-    );
   } catch (e) {
     console.error("Exception while creating MediaRecorder:", e);
     try {
@@ -1295,16 +1272,13 @@ function startRecordingWithCanvas(canvas) {
       mediaRecorder = new MediaRecorder(stream, {
         videoBitsPerSecond: 5000000,
       });
-      recordingQualityIndicator.html(`Recording: Mid-quality (5Mbps)`);
     } catch (e) {
       try {
         // Last resort - use default settings
         mediaRecorder = new MediaRecorder(stream);
-        recordingQualityIndicator.html(`Recording: Standard quality`);
       } catch (e) {
         alert("MediaRecorder is not supported by this browser");
         isRecording = false;
-        recordingQualityIndicator.style("display", "none");
         return;
       }
     }
