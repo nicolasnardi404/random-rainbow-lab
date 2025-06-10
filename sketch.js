@@ -264,6 +264,22 @@ function setup() {
   // Add click handler to record button
   recordButton.mousePressed(toggleRecording);
 
+  // Setup instructions panel toggle
+  const toggleBtn = select("#toggle-instructions");
+  const instructions = select("#instructions");
+
+  // Handle toggle button click
+  toggleBtn.mousePressed(() => {
+    instructions.toggleClass("collapsed");
+  });
+
+  // Handle clicking on collapsed panel
+  instructions.mousePressed(() => {
+    if (instructions.hasClass("collapsed")) {
+      instructions.removeClass("collapsed");
+    }
+  });
+
   // Create webcam capture for effects
   capture = createCapture(VIDEO);
   capture.size(640, 480);

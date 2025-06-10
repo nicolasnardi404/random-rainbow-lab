@@ -46,6 +46,52 @@
             line-height: 1.5;
             max-width: 300px;
             z-index: 1000;
+            transition: all 0.3s ease;
+            border: 1px solid #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+        #instructions.collapsed {
+            max-width: 60px;
+            max-height: 60px;
+            overflow: hidden;
+            padding: 10px;
+            cursor: pointer;
+        }
+        #instructions.collapsed #toggle-instructions {
+            display: none;
+        }
+        #instructions.collapsed .hand-control {
+            display: none;
+        }
+        #instructions.collapsed h3 {
+            display: none;
+        }
+        #toggle-instructions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ffff;
+            border: 1px solid #00ffff;
+            border-radius: 3px;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            z-index: 1001;
+        }
+        #toggle-instructions:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+        #instructions-icon {
+            display: none;
+            font-size: 12px;
+            color: #00ffff;
+            text-align: center;
+            margin: 0;
+        }
+        #instructions.collapsed #instructions-icon {
+            display: block;
         }
         #instructions h3 {
             margin: 0 0 10px 0;
@@ -373,6 +419,8 @@
         <div id="camera-status">Camera: Waiting...</div>
     </div>
     <div id="instructions">
+        <button id="toggle-instructions">Hide</button>
+        <div id="instructions-icon">controls</div>
         <h3>Hand Controls</h3>
         <div class="hand-control">
             <strong>Right Hand:</strong><br>
@@ -615,6 +663,33 @@
         window.shaderColor1 = [1, 0, 1]; // Pink
         window.shaderColor2 = [0, 1, 1]; // Cyan
         window.shaderColor3 = [1, 1, 0]; // Yellow
+
+        // Instructions panel toggle functionality
+        const toggleBtn = document.getElementById('toggle-instructions');
+        const instructions = document.getElementById('instructions');
+        const instructionsIcon = document.getElementById('instructions-icon');
+
+        // Handle toggle button click
+        toggleBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event from bubbling to instructions panel
+            if (instructions.classList.contains('collapsed')) {
+                // Expand
+                instructions.classList.remove('collapsed');
+                toggleBtn.textContent = 'Hide';
+            } else {
+                // Collapse
+                instructions.classList.add('collapsed');
+                toggleBtn.textContent = 'Show';
+            }
+        });
+
+        // Handle clicking on collapsed panel
+        instructions.addEventListener('click', function(e) {
+            if (this.classList.contains('collapsed')) {
+                this.classList.remove('collapsed');
+                toggleBtn.textContent = 'Hide';
+            }
+        });
     });
     
     // Debug helper for camera access and hands visualization
