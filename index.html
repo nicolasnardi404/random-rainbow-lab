@@ -350,9 +350,37 @@
             0% { box-shadow: 0 0 10px rgba(255, 0, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.5); }
             100% { box-shadow: 0 0 25px rgba(255, 0, 255, 0.8), 0 0 25px rgba(0, 255, 255, 0.8); }
         }
+        
+        #mobile-warning {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.95);
+            color: #00ffff;
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        @media (max-width: 900px), (pointer: coarse) {
+            #mobile-warning {
+                display: flex;
+            }
+            body > *:not(#mobile-warning) {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
+    <div id="mobile-warning">
+      🚫 This app is not available on mobile devices.<br>
+      Please use a computer for the full experience!
+    </div>
     <div class="noise"></div>
     <div class="vhs-effect"></div>
     <div class="vhs-flicker"></div>
@@ -447,6 +475,15 @@
                 }, 200);
             }
         }, 500);
+
+        function isMobileDevice() {
+            return /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+        }
+        if (isMobileDevice()) {
+            document.getElementById('mobile-warning').style.display = 'flex';
+            // Optionally, hide the rest of the UI
+            document.body.style.overflow = 'hidden';
+        }
     </script>
 </body>
 </html> 
