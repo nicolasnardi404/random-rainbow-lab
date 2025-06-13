@@ -64,6 +64,21 @@ const FIREFLIES_EFFECT = 4;
 const MIRROR_KALEIDOSCOPE = 5;
 const PIXEL_DISPLACE = 6;
 const PARTICLE_STORM = 7;
+const FRACTAL_3D = 8;
+const WIREFRAME = 9;
+const SCULPTURE_3D = 10;
+const GEOMETRIC_3D = 11;
+const NOISE_FIELD_3D = 12;
+const PARTICLE_FLOW = 13;
+const MAGNETIC_FIELD = 14;
+const FLUID_SIM = 15;
+const PARTICLE_EXPLOSION = 16;
+const TRAIL_SYSTEM = 17;
+const STYLE_TRANSFER = 18;
+const NEURAL_WARP = 19;
+const DEEP_DREAM = 20;
+const AI_PATTERNS = 21;
+const NEURAL_FLOW = 22;
 
 // Colors
 const palette = [
@@ -103,11 +118,26 @@ window.selectedMode = window.selectedMode || "shader"; // 'shader', 'effect', 'v
 
 // EFFECTS: Only core hand-controlled generative effects (no webcam/video, no Neon Particles, Digital Waves, etc.)
 const EFFECTS_LIST = [
-  CRYSTAL_EFFECT,
-  NEBULA_EFFECT,
-  VORTEX_EFFECT,
-  GALAXY_EFFECT,
-  FIREFLIES_EFFECT,
+  CRYSTAL_EFFECT, // Rainbow Wave
+  NEBULA_EFFECT, // Digital Noise
+  VORTEX_EFFECT, // Glitch Field
+  GALAXY_EFFECT, // Cyber Grid
+  FIREFLIES_EFFECT, // Neon Pulse
+  FRACTAL_3D, // 3D Fractals
+  WIREFRAME, // Wireframe Objects
+  SCULPTURE_3D, // 3D Sculptures
+  GEOMETRIC_3D, // Geometric Shapes
+  NOISE_FIELD_3D, // 3D Noise Field
+  PARTICLE_FLOW, // Particle Flow
+  MAGNETIC_FIELD, // Magnetic Field
+  FLUID_SIM, // Fluid Simulation
+  PARTICLE_EXPLOSION, // Particle Explosion
+  TRAIL_SYSTEM, // Trail System
+  STYLE_TRANSFER, // Style Transfer
+  NEURAL_WARP, // Neural Warp
+  DEEP_DREAM, // Deep Dream
+  AI_PATTERNS, // AI Patterns
+  NEURAL_FLOW, // Neural Flow
 ];
 // VIDEO: Only video-based effects (Mirror Kaleidoscope, Pixel Displace, Particle Storm)
 const VIDEO_EFFECTS_LIST = [
@@ -402,6 +432,11 @@ function draw() {
   // Update debug panel
   if (debugMode) {
     updateDebugPanel();
+  }
+
+  // Get the current effect from window variable if set
+  if (window.currentEffect !== undefined) {
+    currentEffect = window.currentEffect;
   }
 
   // Always draw some default effect even if hands are not detected
@@ -1007,6 +1042,51 @@ function drawCurrentEffect() {
     case PARTICLE_STORM:
       drawParticleStorm();
       break;
+    case FRACTAL_3D:
+      drawFractal3D();
+      break;
+    case WIREFRAME:
+      drawWireframe();
+      break;
+    case SCULPTURE_3D:
+      drawSculpture3D();
+      break;
+    case GEOMETRIC_3D:
+      drawGeometric3D();
+      break;
+    case NOISE_FIELD_3D:
+      drawNoiseField3D();
+      break;
+    case PARTICLE_FLOW:
+      drawParticleFlow();
+      break;
+    case MAGNETIC_FIELD:
+      drawMagneticField();
+      break;
+    case FLUID_SIM:
+      drawFluidSim();
+      break;
+    case PARTICLE_EXPLOSION:
+      drawParticleExplosion();
+      break;
+    case TRAIL_SYSTEM:
+      drawTrailSystem();
+      break;
+    case STYLE_TRANSFER:
+      drawStyleTransfer();
+      break;
+    case NEURAL_WARP:
+      drawNeuralWarp();
+      break;
+    case DEEP_DREAM:
+      drawDeepDream();
+      break;
+    case AI_PATTERNS:
+      drawAIPatterns();
+      break;
+    case NEURAL_FLOW:
+      drawNeuralFlow();
+      break;
   }
 
   pop();
@@ -1034,14 +1114,26 @@ function updateDebugPanel() {
 
     // Update current effect
     const effectNames = [
-      "Crystal Effect",
-      "Nebula Effect",
-      "Vortex Effect",
-      "Galaxy Effect",
-      "Fireflies Effect",
-      "Mirror Kaleidoscope",
-      "Pixel Displace",
-      "Particle Storm",
+      "Rainbow Wave",
+      "Digital Noise",
+      "Glitch Field",
+      "Cyber Grid",
+      "Neon Pulse",
+      "3D Fractals",
+      "Wireframe Objects",
+      "3D Sculptures",
+      "Geometric Shapes",
+      "3D Noise Field",
+      "Particle Flow",
+      "Magnetic Field",
+      "Fluid Simulation",
+      "Particle Explosion",
+      "Trail System",
+      "Style Transfer",
+      "Neural Warp",
+      "Deep Dream",
+      "AI Patterns",
+      "Neural Flow",
     ];
     currentEffectDiv.innerHTML = `Effect: ${effectNames[currentEffect]}`;
 
@@ -1118,14 +1210,26 @@ function keyPressed() {
 
     // Show effect change notification
     const effectNames = [
-      "Crystal Effect",
-      "Nebula Effect",
-      "Vortex Effect",
-      "Galaxy Effect",
-      "Fireflies Effect",
-      "Mirror Kaleidoscope",
-      "Pixel Displace",
-      "Particle Storm",
+      "Rainbow Wave",
+      "Digital Noise",
+      "Glitch Field",
+      "Cyber Grid",
+      "Neon Pulse",
+      "3D Fractals",
+      "Wireframe Objects",
+      "3D Sculptures",
+      "Geometric Shapes",
+      "3D Noise Field",
+      "Particle Flow",
+      "Magnetic Field",
+      "Fluid Simulation",
+      "Particle Explosion",
+      "Trail System",
+      "Style Transfer",
+      "Neural Warp",
+      "Deep Dream",
+      "AI Patterns",
+      "Neural Flow",
     ];
 
     console.log("Effect changed to:", effectNames[currentEffect]);
@@ -1394,4 +1498,500 @@ function getCurrentVideoTexture() {
     }
   }
   return null;
+}
+
+// New 3D Effects
+function drawFractal3D() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.01;
+  let scale = effectScale * 0.5;
+
+  for (let i = 0; i < 5; i++) {
+    push();
+    rotateY(time + (i * PI) / 2.5);
+    rotateX(time * 0.5 + (i * PI) / 3);
+
+    let col = color((colorShift + i * 50) % 255, 255, 255, 200);
+    stroke(col);
+
+    // Draw fractal pattern
+    for (let j = 0; j < 8; j++) {
+      push();
+      rotateY((j * PI) / 4);
+      let r = scale * (1 + sin(time + j) * 0.2);
+      let x = cos(time * 2 + j) * r;
+      let y = sin(time + j) * r;
+      let z = cos(time * 1.5 + j) * r;
+
+      translate(x, y, z);
+      box(scale * 0.2 * (1 + energyLevel));
+      pop();
+    }
+    pop();
+  }
+  pop();
+}
+
+function drawWireframe() {
+  push();
+  noFill();
+  strokeWeight(1);
+
+  let time = frameCount * 0.02;
+  let scale = effectScale * 0.8;
+
+  // Create wireframe cube
+  for (let i = 0; i < 8; i++) {
+    let x = i & 1 ? scale : -scale;
+    let y = i & 2 ? scale : -scale;
+    let z = i & 4 ? scale : -scale;
+
+    push();
+    translate(x, y, z);
+    let col = color((colorShift + i * 30) % 255, 255, 255, 150);
+    stroke(col);
+    box(scale * 0.1);
+    pop();
+  }
+
+  // Connect vertices with lines
+  stroke(255, 255, 255, 100);
+  for (let i = 0; i < 8; i++) {
+    for (let j = i + 1; j < 8; j++) {
+      if ((i ^ j) === 1 || (i ^ j) === 2 || (i ^ j) === 4) {
+        let x1 = i & 1 ? scale : -scale;
+        let y1 = i & 2 ? scale : -scale;
+        let z1 = i & 4 ? scale : -scale;
+        let x2 = j & 1 ? scale : -scale;
+        let y2 = j & 2 ? scale : -scale;
+        let z2 = j & 4 ? scale : -scale;
+
+        line(x1, y1, z1, x2, y2, z2);
+      }
+    }
+  }
+  pop();
+}
+
+function drawSculpture3D() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.01;
+  let scale = effectScale * 0.6;
+
+  // Create organic sculpture
+  for (let i = 0; i < 12; i++) {
+    push();
+    rotateY(time + (i * PI) / 6);
+    rotateX(time * 0.5 + (i * PI) / 4);
+
+    let col = color((colorShift + i * 20) % 255, 255, 255, 200);
+    stroke(col);
+
+    // Draw curved surfaces
+    for (let j = 0; j < 8; j++) {
+      push();
+      let angle = (j * PI) / 4;
+      let r = scale * (1 + sin(time + j) * 0.3);
+      let x = cos(angle) * r;
+      let y = sin(angle) * r;
+      let z = cos(time + j) * r;
+
+      translate(x, y, z);
+      rotateX(time + j);
+      rotateY(time * 0.5 + j);
+      torus(scale * 0.1, scale * 0.05);
+      pop();
+    }
+    pop();
+  }
+  pop();
+}
+
+function drawGeometric3D() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.015;
+  let scale = effectScale * 0.7;
+
+  // Create geometric patterns
+  for (let i = 0; i < 6; i++) {
+    push();
+    rotateY(time + (i * PI) / 3);
+    rotateX(time * 0.5 + (i * PI) / 4);
+
+    let col = color((colorShift + i * 40) % 255, 255, 255, 200);
+    stroke(col);
+
+    // Draw different geometric shapes
+    switch (i % 4) {
+      case 0:
+        box(scale * 0.3);
+        break;
+      case 1:
+        sphere(scale * 0.2);
+        break;
+      case 2:
+        cylinder(scale * 0.2, scale * 0.4);
+        break;
+      case 3:
+        cone(scale * 0.2, scale * 0.4);
+        break;
+    }
+    pop();
+  }
+  pop();
+}
+
+function drawNoiseField3D() {
+  push();
+  noFill();
+  strokeWeight(1);
+
+  let time = frameCount * 0.01;
+  let scale = effectScale * 0.8;
+  let resolution = 10;
+
+  // Create 3D noise field
+  for (let x = -scale; x <= scale; x += scale / resolution) {
+    for (let y = -scale; y <= scale; y += scale / resolution) {
+      for (let z = -scale; z <= scale; z += scale / resolution) {
+        let noiseVal = noise(x * 0.01 + time, y * 0.01, z * 0.01 + time);
+        if (noiseVal > 0.5) {
+          let col = color((colorShift + noiseVal * 100) % 255, 255, 255, 150);
+          stroke(col);
+          point(x, y, z);
+        }
+      }
+    }
+  }
+  pop();
+}
+
+// New Particle Effects
+function drawParticleFlow() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.02;
+  let scale = effectScale * 0.8;
+
+  // Create flowing particles
+  for (let i = 0; i < particleCount; i++) {
+    let t = i / particleCount;
+    let angle = t * TWO_PI * 4 + time;
+    let radius = scale * (1 + sin(angle) * 0.3);
+
+    let x = cos(angle) * radius;
+    let y = sin(angle * 2) * radius;
+    let z = sin(angle) * radius;
+
+    let col = color((colorShift + t * 100) % 255, 255, 255, 200);
+    stroke(col);
+
+    push();
+    translate(x, y, z);
+    sphere(particleSize * (1 + energyLevel * sin(angle)));
+    pop();
+  }
+  pop();
+}
+
+function drawMagneticField() {
+  push();
+  noFill();
+  strokeWeight(1);
+
+  let time = frameCount * 0.01;
+  let scale = effectScale * 0.7;
+
+  // Create magnetic field lines
+  for (let i = 0; i < 12; i++) {
+    push();
+    rotateY(time + (i * PI) / 6);
+
+    let col = color((colorShift + i * 20) % 255, 255, 255, 150);
+    stroke(col);
+
+    // Draw field lines
+    for (let j = 0; j < 8; j++) {
+      let angle = (j * PI) / 4;
+      let r = scale * (1 + sin(time + j) * 0.2);
+      let x = cos(angle) * r;
+      let y = sin(angle) * r;
+      let z = cos(time + j) * r;
+
+      push();
+      translate(x, y, z);
+      rotateX(time + j);
+      rotateY(time * 0.5 + j);
+      box(scale * 0.1);
+      pop();
+    }
+    pop();
+  }
+  pop();
+}
+
+function drawFluidSim() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.015;
+  let scale = effectScale * 0.8;
+
+  // Create fluid-like particles
+  for (let i = 0; i < particleCount; i++) {
+    let t = i / particleCount;
+    let angle = t * TWO_PI * 3 + time;
+    let radius = scale * (1 + noise(t * 10 + time) * 0.4);
+
+    let x = cos(angle) * radius;
+    let y = sin(angle * 1.5) * radius;
+    let z = sin(angle) * radius;
+
+    let col = color((colorShift + t * 80) % 255, 255, 255, 200);
+    stroke(col);
+
+    push();
+    translate(x, y, z);
+    sphere(particleSize * (1 + energyLevel * noise(t * 5 + time)));
+    pop();
+  }
+  pop();
+}
+
+function drawParticleExplosion() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.02;
+  let scale = effectScale * 0.9;
+
+  // Create explosive particle effect
+  for (let i = 0; i < particleCount; i++) {
+    let t = i / particleCount;
+    let angle = t * TWO_PI * 8 + time;
+    let radius = scale * (1 + sin(time * 2 + t * 10) * 0.5);
+
+    let x = cos(angle) * radius;
+    let y = sin(angle) * radius;
+    let z = cos(time + t * 5) * radius;
+
+    let col = color((colorShift + t * 120) % 255, 255, 255, 200);
+    stroke(col);
+
+    push();
+    translate(x, y, z);
+    sphere(particleSize * (1 + energyLevel * sin(time + t * 8)));
+    pop();
+  }
+  pop();
+}
+
+function drawTrailSystem() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.01;
+  let scale = effectScale * 0.7;
+
+  // Create trailing particles
+  for (let i = 0; i < particleCount; i++) {
+    let t = i / particleCount;
+    let angle = t * TWO_PI * 5 + time;
+    let radius = scale * (1 + sin(angle * 2) * 0.3);
+
+    let x = cos(angle) * radius;
+    let y = sin(angle) * radius;
+    let z = sin(time + t * 3) * radius;
+
+    let col = color((colorShift + t * 60) % 255, 255, 255, 200);
+    stroke(col);
+
+    push();
+    translate(x, y, z);
+    sphere(particleSize * (1 + energyLevel * cos(time + t * 4)));
+    pop();
+  }
+  pop();
+}
+
+// New Neural Effects
+function drawStyleTransfer() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.01;
+  let scale = effectScale * 0.8;
+
+  // Create stylized patterns
+  for (let i = 0; i < 8; i++) {
+    push();
+    rotateY(time + (i * PI) / 4);
+
+    let col = color((colorShift + i * 30) % 255, 255, 255, 200);
+    stroke(col);
+
+    // Draw artistic patterns
+    for (let j = 0; j < 6; j++) {
+      let angle = (j * PI) / 3;
+      let r = scale * (1 + sin(time + j) * 0.2);
+      let x = cos(angle) * r;
+      let y = sin(angle) * r;
+      let z = cos(time + j) * r;
+
+      push();
+      translate(x, y, z);
+      rotateX(time + j);
+      rotateY(time * 0.5 + j);
+      box(scale * 0.15);
+      pop();
+    }
+    pop();
+  }
+  pop();
+}
+
+function drawNeuralWarp() {
+  push();
+  noFill();
+  strokeWeight(1);
+
+  let time = frameCount * 0.015;
+  let scale = effectScale * 0.9;
+
+  // Create warped neural patterns
+  for (let i = 0; i < particleCount; i++) {
+    let t = i / particleCount;
+    let angle = t * TWO_PI * 6 + time;
+    let radius = scale * (1 + noise(t * 8 + time) * 0.4);
+
+    let x = cos(angle) * radius;
+    let y = sin(angle * 1.5) * radius;
+    let z = sin(angle) * radius;
+
+    let col = color((colorShift + t * 90) % 255, 255, 255, 200);
+    stroke(col);
+
+    push();
+    translate(x, y, z);
+    sphere(particleSize * (1 + energyLevel * noise(t * 4 + time)));
+    pop();
+  }
+  pop();
+}
+
+function drawDeepDream() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.01;
+  let scale = effectScale * 0.7;
+
+  // Create dream-like patterns
+  for (let i = 0; i < 10; i++) {
+    push();
+    rotateY(time + (i * PI) / 5);
+    rotateX(time * 0.5 + (i * PI) / 4);
+
+    let col = color((colorShift + i * 25) % 255, 255, 255, 200);
+    stroke(col);
+
+    // Draw dream patterns
+    for (let j = 0; j < 8; j++) {
+      let angle = (j * PI) / 4;
+      let r = scale * (1 + sin(time + j) * 0.3);
+      let x = cos(angle) * r;
+      let y = sin(angle) * r;
+      let z = cos(time + j) * r;
+
+      push();
+      translate(x, y, z);
+      rotateX(time + j);
+      rotateY(time * 0.5 + j);
+      torus(scale * 0.1, scale * 0.05);
+      pop();
+    }
+    pop();
+  }
+  pop();
+}
+
+function drawAIPatterns() {
+  push();
+  noFill();
+  strokeWeight(1);
+
+  let time = frameCount * 0.02;
+  let scale = effectScale * 0.8;
+
+  // Create AI-inspired patterns
+  for (let i = 0; i < particleCount; i++) {
+    let t = i / particleCount;
+    let angle = t * TWO_PI * 7 + time;
+    let radius = scale * (1 + sin(angle * 2) * 0.3);
+
+    let x = cos(angle) * radius;
+    let y = sin(angle) * radius;
+    let z = cos(time + t * 4) * radius;
+
+    let col = color((colorShift + t * 70) % 255, 255, 255, 200);
+    stroke(col);
+
+    push();
+    translate(x, y, z);
+    sphere(particleSize * (1 + energyLevel * sin(time + t * 6)));
+    pop();
+  }
+  pop();
+}
+
+function drawNeuralFlow() {
+  push();
+  noFill();
+  strokeWeight(2);
+
+  let time = frameCount * 0.015;
+  let scale = effectScale * 0.9;
+
+  // Create flowing neural patterns
+  for (let i = 0; i < 12; i++) {
+    push();
+    rotateY(time + (i * PI) / 6);
+
+    let col = color((colorShift + i * 20) % 255, 255, 255, 200);
+    stroke(col);
+
+    // Draw neural connections
+    for (let j = 0; j < 8; j++) {
+      let angle = (j * PI) / 4;
+      let r = scale * (1 + sin(time + j) * 0.2);
+      let x = cos(angle) * r;
+      let y = sin(angle) * r;
+      let z = cos(time + j) * r;
+
+      push();
+      translate(x, y, z);
+      rotateX(time + j);
+      rotateY(time * 0.5 + j);
+      box(scale * 0.1);
+      pop();
+    }
+    pop();
+  }
+  pop();
 }

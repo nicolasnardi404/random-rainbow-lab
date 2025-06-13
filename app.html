@@ -407,7 +407,6 @@
             <button class="bg-button" data-mode="2">VIDEO</button>
         </div>
         
-        
         <select id="bg-select" class="bg-select"></select>
         
         <!-- Video Source Controls - Only visible in Video mode -->
@@ -575,12 +574,51 @@
                 });
                 bgSelect.style.display = 'block';
                 document.getElementById('video-source-controls').style.display = 'block';
-                // Make sure webcam source is active by default
-                document.getElementById('webcam-source').classList.add('active');
-                document.getElementById('upload-source').classList.remove('active');
-                videoSource = 'webcam';
+            } else if (mode === 1) { // Effects
+                const effects = [
+                    // Original effects
+                    'Rainbow Wave',
+                    'Digital Noise',
+                    'Glitch Field',
+                    'Cyber Grid',
+                    'Neon Pulse',
+                    // 3D effects
+                    '3D Fractals',
+                    'Wireframe Objects',
+                    '3D Sculptures',
+                    'Geometric Shapes',
+                    '3D Noise Field',
+                    // Particle effects
+                    'Particle Flow',
+                    'Magnetic Field',
+                    'Fluid Simulation',
+                    'Particle Explosion',
+                    'Trail System',
+                    // Neural effects
+                    'Style Transfer',
+                    'Neural Warp',
+                    'Deep Dream',
+                    'AI Patterns',
+                    'Neural Flow'
+                ];
+                effects.forEach((name, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = name;
+                    bgSelect.appendChild(option);
+                });
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.style.display = 'block';
+                });
+                bgSelect.style.display = 'block';
+                document.getElementById('video-source-controls').style.display = 'none';
+                
+                // Add event listener for effect selection
+                bgSelect.addEventListener('change', function() {
+                    window.currentEffect = parseInt(this.value);
+                });
             } else {
-                // Effects mode or others
+                // Others
                 document.querySelectorAll('.color-picker').forEach(picker => {
                     picker.style.display = 'none';
                 });
