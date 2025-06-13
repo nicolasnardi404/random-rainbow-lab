@@ -79,6 +79,16 @@ const NEURAL_WARP = 19;
 const DEEP_DREAM = 20;
 const AI_PATTERNS = 21;
 const NEURAL_FLOW = 22;
+// New video effects
+const VIDEO_PLANES = 23;
+const VIDEO_TUNNEL = 24;
+const VIDEO_RIBBON = 25;
+const VIDEO_CUBES = 26;
+const VIDEO_MOSAIC = 27;
+const VIDEO_WAVE = 28;
+const VIDEO_SPHERE = 29;
+const VIDEO_MIRROR_ROOM = 30;
+const VIDEO_PARTICLE_SWARM = 31;
 
 // Colors
 const palette = [
@@ -144,6 +154,13 @@ const VIDEO_EFFECTS_LIST = [
   MIRROR_KALEIDOSCOPE,
   PIXEL_DISPLACE,
   PARTICLE_STORM,
+  // New video effects
+  VIDEO_TUNNEL,
+  VIDEO_CUBES, // Re-enabled - user wants the squares effect
+  // VIDEO_MOSAIC, // Removed - causing issues
+  VIDEO_SPHERE,
+  // VIDEO_MIRROR_ROOM, // Removed - user didn't like it
+  // VIDEO_PARTICLE_SWARM, // Removed - user didn't like it
 ];
 
 // VIDEO effects work with both webcam and uploaded video sources
@@ -1087,6 +1104,33 @@ function drawCurrentEffect() {
     case NEURAL_FLOW:
       drawNeuralFlow();
       break;
+    case VIDEO_PLANES:
+      drawVideoPlanes();
+      break;
+    case VIDEO_TUNNEL:
+      drawVideoTunnel();
+      break;
+    case VIDEO_RIBBON:
+      drawVideoRibbon();
+      break;
+    case VIDEO_CUBES:
+      drawVideoCubes();
+      break;
+    case VIDEO_MOSAIC:
+      drawVideoMosaic();
+      break;
+    case VIDEO_WAVE:
+      drawVideoWave();
+      break;
+    case VIDEO_SPHERE:
+      drawVideoSphere();
+      break;
+    case VIDEO_MIRROR_ROOM:
+      drawVideoMirrorRoom();
+      break;
+    case VIDEO_PARTICLE_SWARM:
+      drawVideoParticleSwarm();
+      break;
   }
 
   pop();
@@ -1134,6 +1178,15 @@ function updateDebugPanel() {
       "Deep Dream",
       "AI Patterns",
       "Neural Flow",
+      "Video Planes",
+      "Video Tunnel",
+      "Video Ribbon",
+      "Video Cubes", // Re-enabled - user wants the squares effect
+      // "Video Mosaic", // Removed - was causing issues
+      "Video Wave",
+      "Video Sphere",
+      "Video Mirror Room",
+      // "Video Particle Swarm", // Removed - user didn't like it
     ];
     currentEffectDiv.innerHTML = `Effect: ${effectNames[currentEffect]}`;
 
@@ -1991,6 +2044,273 @@ function drawNeuralFlow() {
       box(scale * 0.1);
       pop();
     }
+    pop();
+  }
+  pop();
+}
+
+function drawVideoPlanes() {
+  // This effect has been disabled per user request
+  return;
+}
+
+function drawVideoTunnel() {
+  const videoTex = window.getCurrentVideoTexture
+    ? window.getCurrentVideoTexture()
+    : null;
+  if (!videoTex || !videoTex.loadedmetadata) return;
+
+  // Hand controls
+  let camZ = 0,
+    twist = 0,
+    speed = 0.02;
+  if (window.hands && window.hands.length > 0 && window.hands[0]) {
+    camZ = map(window.hands[0][0].y, 0, window.height, -400, 400);
+    twist = window.handRotation || 0;
+    if (window.hands[0][1] && window.hands[0][2]) {
+      let handScale = p5.Vector.dist(window.hands[0][1], window.hands[0][2]);
+      speed = map(handScale, 50, 200, 0.01, 0.08);
+    }
+  }
+
+  push();
+  translate(0, 0, camZ);
+  rotateZ(twist);
+  let tunnelLength = 1200;
+  let numSegments = 40;
+  let radius = 220;
+  textureMode(NORMAL);
+  texture(videoTex);
+  noStroke();
+  for (let i = 0; i < numSegments; i++) {
+    let z1 = map(i, 0, numSegments, -tunnelLength / 2, tunnelLength / 2);
+    let z2 = map(i + 1, 0, numSegments, -tunnelLength / 2, tunnelLength / 2);
+    beginShape(QUAD_STRIP);
+    for (let a = 0; a <= 24; a++) {
+      let theta = map(a, 0, 24, 0, TWO_PI);
+      let u = a / 24;
+      let v1 = i / numSegments;
+      let v2 = (i + 1) / numSegments;
+      let x1 = cos(theta) * radius;
+      let y1 = sin(theta) * radius;
+      let x2 = cos(theta) * radius;
+      let y2 = sin(theta) * radius;
+      vertex(x1, y1, z1, u, v1);
+      vertex(x2, y2, z2, u, v2);
+    }
+    endShape();
+  }
+  pop();
+}
+
+function drawVideoRibbon() {
+  // This effect has been disabled per user request
+  return;
+}
+
+function drawVideoCubes() {
+  const videoTex = window.getCurrentVideoTexture
+    ? window.getCurrentVideoTexture()
+    : null;
+  if (!videoTex || !videoTex.loadedmetadata) return;
+
+  // Hand controls
+  let posX = 0,
+    posY = 0,
+    posZ = 0,
+    spacing = 90,
+    rotY = 0,
+    rotX = 0;
+  if (hands && hands.length > 0 && hands[0]) {
+    posX = map(hands[0][0].x, 0, width, -width / 2, width / 2);
+    posY = map(hands[0][0].y, 0, height, -height / 2, height / 2);
+    posZ = hands[0][0].z * 400;
+    if (hands[0][1] && hands[0][2]) {
+      let handScale = p5.Vector.dist(hands[0][1], hands[0][2]);
+      spacing = map(handScale, 50, 200, 60, 180);
+    }
+    if (handRotation !== undefined) {
+      rotY = handRotation;
+      rotX = Math.sin(handRotation) * Math.PI * 0.3;
+    }
+  }
+
+  let grid = 3;
+  let cubeSize = 60;
+
+  push();
+  translate(posX, posY, posZ);
+  rotateY(rotY);
+  rotateX(rotX);
+  textureMode(NORMAL);
+  texture(videoTex);
+  noStroke();
+  for (let x = 0; x < grid; x++) {
+    for (let y = 0; y < grid; y++) {
+      for (let z = 0; z < grid; z++) {
+        push();
+        let px = (x - 1) * spacing;
+        let py = (y - 1) * spacing;
+        let pz = (z - 1) * spacing;
+        translate(px, py, pz);
+        // Map a different part of the video to each cube face
+        for (let f = 0; f < 6; f++) {
+          push();
+          let u0 = x / grid,
+            v0 = y / grid,
+            u1 = (x + 1) / grid,
+            v1 = (y + 1) / grid;
+          switch (f) {
+            case 0:
+              rotateY(0);
+              translate(0, 0, cubeSize / 2);
+              break; // front
+            case 1:
+              rotateY(PI);
+              translate(0, 0, cubeSize / 2);
+              break; // back
+            case 2:
+              rotateY(HALF_PI);
+              translate(0, 0, cubeSize / 2);
+              break; // right
+            case 3:
+              rotateY(-HALF_PI);
+              translate(0, 0, cubeSize / 2);
+              break; // left
+            case 4:
+              rotateX(-HALF_PI);
+              translate(0, 0, cubeSize / 2);
+              break; // top
+            case 5:
+              rotateX(HALF_PI);
+              translate(0, 0, cubeSize / 2);
+              break; // bottom
+          }
+          beginShape();
+          vertex(-cubeSize / 2, -cubeSize / 2, 0, u0, v0);
+          vertex(cubeSize / 2, -cubeSize / 2, 0, u1, v0);
+          vertex(cubeSize / 2, cubeSize / 2, 0, u1, v1);
+          vertex(-cubeSize / 2, cubeSize / 2, 0, u0, v1);
+          endShape(CLOSE);
+          pop();
+        }
+        pop();
+      }
+    }
+  }
+  pop();
+}
+
+// Replacement function that does nothing
+function drawVideoMosaic() {
+  // This effect has been disabled due to rendering issues
+  return;
+}
+
+function drawVideoWave() {
+  // This effect has been disabled per user request
+  return;
+}
+
+function drawVideoSphere() {
+  const videoTex = window.getCurrentVideoTexture
+    ? window.getCurrentVideoTexture()
+    : null;
+  if (!videoTex || !videoTex.loadedmetadata) return;
+
+  // Hand controls
+  let rotY = 0,
+    rotX = 0,
+    scaleValue = 1; // Renamed from 'scale' to avoid conflict with p5.js scale() function
+  if (hands && hands.length > 0 && hands[0]) {
+    if (handRotation !== undefined) {
+      rotY = handRotation;
+      rotX = Math.sin(handRotation) * Math.PI * 0.3;
+    }
+    if (hands[0][1] && hands[0][2]) {
+      let handScale = p5.Vector.dist(hands[0][1], hands[0][2]);
+      scaleValue = map(handScale, 50, 200, 0.7, 1.7);
+    }
+  }
+
+  push();
+  rotateY(rotY);
+  rotateX(rotX);
+  scaleValue = constrain(scaleValue, 0.5, 2.5);
+  scale(scaleValue); // Now using the p5.js scale() function properly
+  textureMode(NORMAL);
+  texture(videoTex);
+  noStroke();
+  sphere(180, 36, 24);
+  pop();
+}
+
+function drawVideoMirrorRoom() {
+  // This effect has been disabled per user request
+  return;
+}
+
+function drawVideoParticleSwarm() {
+  const videoTex = window.getCurrentVideoTexture
+    ? window.getCurrentVideoTexture()
+    : null;
+  if (!videoTex || !videoTex.loadedmetadata) return;
+
+  // Hand controls
+  let centerX = 0,
+    centerY = 0,
+    centerZ = 0,
+    spread = 180,
+    rotY = 0,
+    rotX = 0;
+  if (hands && hands.length > 0 && hands[0]) {
+    centerX = map(hands[0][0].x, 0, width, -width / 2, width / 2);
+    centerY = map(hands[0][0].y, 0, height, -height / 2, height / 2);
+    centerZ = hands[0][0].z * 400;
+    if (hands[0][1] && hands[0][2]) {
+      let handScale = p5.Vector.dist(hands[0][1], hands[0][2]);
+      spread = map(handScale, 50, 200, 80, 320);
+    }
+    if (handRotation !== undefined) {
+      rotY = handRotation;
+      rotX = Math.sin(handRotation) * Math.PI * 0.3;
+    }
+  }
+
+  let numParticles = 36;
+  let pSize = 48;
+  let time = millis() * 0.001;
+
+  push();
+  translate(centerX, centerY, centerZ);
+  rotateY(rotY);
+  rotateX(rotX);
+  textureMode(NORMAL);
+  texture(videoTex);
+  noStroke();
+  for (let i = 0; i < numParticles; i++) {
+    let angle = map(i, 0, numParticles, 0, TWO_PI) + time * 0.7;
+    let r = spread + 40 * Math.sin(time * 1.2 + i);
+    let x = Math.cos(angle) * r + Math.sin(time + i) * 30;
+    let y = Math.sin(angle * 1.3) * r * 0.7 + Math.cos(time * 0.8 + i) * 18;
+    let z = Math.sin(angle) * r * 0.5 + Math.sin(time * 1.1 + i) * 22;
+    let u0 = (i % 6) / 6,
+      v0 = Math.floor(i / 6) / 6;
+    let u1 = ((i % 6) + 1) / 6,
+      v1 = (Math.floor(i / 6) + 1) / 6;
+    // Clamp values to ensure they stay within 0-1
+    u1 = Math.min(u1, 1.0);
+    v1 = Math.min(v1, 1.0);
+    push();
+    translate(x, y, z);
+    rotateY(angle + time * 0.5);
+    rotateX(angle * 0.5 + time * 0.3);
+    beginShape();
+    vertex(-pSize / 2, -pSize / 2, 0, u0, v0);
+    vertex(pSize / 2, -pSize / 2, 0, u1, v0);
+    vertex(pSize / 2, pSize / 2, 0, u1, v1);
+    vertex(-pSize / 2, pSize / 2, 0, u0, v1);
+    endShape(CLOSE);
     pop();
   }
   pop();
