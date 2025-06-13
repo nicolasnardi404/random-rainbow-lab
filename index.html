@@ -351,6 +351,31 @@
             100% { box-shadow: 0 0 25px rgba(255, 0, 255, 0.8), 0 0 25px rgba(0, 255, 255, 0.8); }
         }
         
+        /* Add footer styles */
+        #footer {
+            color: #00ffff;
+            background: rgba(0, 0, 0, 0.7);
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            font-family: 'VT323', monospace;
+            transition: all 0.3s ease;
+            text-align: center;
+            white-space: nowrap;
+            margin-bottom: 20px;
+        }
+        
+ 
+        #footer a {
+            color: #00ffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        #footer a:hover {
+            color: #ff00ff;
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+        }
+        
         #mobile-warning {
             display: none;
             position: fixed;
@@ -374,6 +399,21 @@
                 display: none !important;
             }
         }
+        
+        a[href="https://randomrainbow.art"]:hover {
+            color: #ff00ff !important;
+            border-color: #ff00ff !important;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5) !important;
+            transform: scale(1.05);
+        }
+        
+        a[href="https://randomrainbow.art"]:hover span:last-child {
+            left: 100%;
+        }
+        
+        a[href="https://randomrainbow.art"]:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -390,7 +430,13 @@
         <div class="glitch-container">
             <h1>RANDOM RAINBOW LAB</h1>
         </div>
-        <h2>CYBERDELIC HAND CONTROLLER SYSTEM v1.0</h2>
+        <h2>CYBERDELIC HAND CONTROLLER FROM</h2>
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="https://randomrainbow.art" target="_blank" style="color: #00ffff; text-decoration: none; font-size: 1.2rem; font-family: 'VT323', monospace; text-transform: uppercase; transition: all 0.3s ease; padding: 5px 15px; border: 1px solid #00ffff; box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); display: inline-block; position: relative; overflow: hidden;">
+                <span style="position: relative; z-index: 1;">RANDOM RAINBOW</span>
+                <span style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 0, 255, 0.2), transparent); transition: all 0.5s ease;"></span>
+            </a>
+        </div>
         
         <div class="crt-frame">
             <div class="features">
@@ -422,6 +468,11 @@
             </div>
         </div>
     </div>
+    
+    <!-- Add footer -->
+    <footer id="footer">
+        Developed by <a href="https://cutethingsonline.com" target="_blank">Cute Things Online</a>
+    </footer>
     
     <script>
         // Create random glitches
