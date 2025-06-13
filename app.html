@@ -464,7 +464,9 @@
             <strong>Keyboard:</strong><br>
             • Press SPACE to change effects<br>
             • Press 'D' to toggle debug info<br>
-            • Press 'R' to toggle recording
+            • Press 'R' to toggle recording<br>
+            • Press 'T' to toggle trails<br>
+            • Press 'C' to clear trails
         </div>
         <div class="hand-control">
             <strong>Recording:</strong><br>
@@ -495,6 +497,24 @@
         const ghostToggle = document.getElementById('ghost-toggle');
         const clearTrailsBtn = document.getElementById('clear-trails');
         const projectButton = document.getElementById('project-button');
+        
+        // Add keyboard shortcuts for trails
+        document.addEventListener('keydown', function(e) {
+            if (e.key.toLowerCase() === 't') {
+                // Toggle trails
+                if (ghostToggle) {
+                    ghostToggle.checked = !ghostToggle.checked;
+                    const event = new Event('change');
+                    ghostToggle.dispatchEvent(event);
+                }
+            } else if (e.key.toLowerCase() === 'c') {
+                // Clear trails
+                if (window.clearPersistenceCanvas) {
+                    window.clearPersistenceCanvas();
+                    console.log("Cleared persistence canvas");
+                }
+            }
+        });
         
         // Project button functionality
         projectButton.addEventListener('click', function() {
