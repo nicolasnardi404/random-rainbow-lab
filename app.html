@@ -400,6 +400,7 @@
             <button id="project-button" class="effect-clear-btn" style="display: inline-block; width: auto;">
                 Full Screen
             </button>
+            
         </div>
         <div class="bg-buttons">
             <button class="bg-button active" data-mode="0">SHADER</button>
@@ -416,8 +417,13 @@
                 <button id="upload-source" class="source-toggle">Upload Video</button>
             </div>
             <input type="file" id="bg-upload" accept="video/*">
-            <label for="bg-upload" id="bg-upload-label">Upload Video File</label>
             <div id="upload-status" class="upload-status" style="display: none;"></div>
+        </div>
+        
+        <!-- Video Background Toggle (visible in Video and Effects modes) -->
+        <div id="videoBackgroundToggleSection" class="control-section" style="display: none; margin-top: 10px;">
+            <label for="videoBackgroundToggle">Static Video Background:</label>
+            <input type="checkbox" id="videoBackgroundToggle">
         </div>
         
         <div class="color-pickers">
@@ -465,7 +471,8 @@
             • Press 'D' to toggle debug info<br>
             • Press 'R' to toggle recording<br>
             • Press 'T' to toggle trails<br>
-            • Press 'C' to clear trails
+            • Press 'C' to clear trails<br>
+            • Press 'V' to toggle video background
         </div>
         <div class="hand-control">
             <strong>Recording:</strong><br>
@@ -496,6 +503,7 @@
         const ghostToggle = document.getElementById('ghost-toggle');
         const clearTrailsBtn = document.getElementById('clear-trails');
         const projectButton = document.getElementById('project-button');
+        const videoBackgroundToggle = document.getElementById('videoBackgroundToggle');
         
         // Add keyboard shortcuts for trails
         document.addEventListener('keydown', function(e) {
@@ -511,6 +519,13 @@
                 if (window.clearPersistenceCanvas) {
                     window.clearPersistenceCanvas();
                     console.log("Cleared persistence canvas");
+                }
+            } else if (e.key.toLowerCase() === 'v') {
+                // Toggle video background
+                if (videoBackgroundToggle) {
+                    videoBackgroundToggle.checked = !videoBackgroundToggle.checked;
+                    const event = new Event('change');
+                    videoBackgroundToggle.dispatchEvent(event);
                 }
             }
         });
@@ -540,40 +555,38 @@
         
         // Set up the select options based on mode
         function updateBgSelectOptions(mode) {
+            // Clear existing options
             bgSelect.innerHTML = '';
             
-            // Different options based on mode
             if (mode === 0) { // Shader
-                // Use SHADER_NAMES from sketch.js
-                if (typeof SHADER_NAMES !== 'undefined') {
-                    SHADER_NAMES.forEach((name, index) => {
-                        const option = document.createElement('option');
-                        option.value = index;
-                        option.textContent = name;
-                        bgSelect.appendChild(option);
-                    });
-                }
+                const shaders = [
+                    'Plasma Wave',
+                    'Fractal Noise',
+                    'Color Spiral',
+                    'Digital Rain',
+                    'Neon Grid',
+                    'Glitch Static',
+                    'Cyber Tunnel',
+                    'Matrix Code',
+                    'Electric Field',
+                    'Quantum Foam'
+                ];
+                shaders.forEach((name, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = name;
+                    bgSelect.appendChild(option);
+                });
                 document.querySelectorAll('.color-picker').forEach(picker => {
                     picker.style.display = 'block';
                 });
                 bgSelect.style.display = 'block';
-                document.getElementById('bg-upload-label').style.display = 'none';
                 document.getElementById('video-source-controls').style.display = 'none';
-            } else if (mode === 2) { // Video
-                // Use BACKGROUND_VIDEO_SOURCES from image_info.js
-                if (typeof BACKGROUND_VIDEO_SOURCES !== 'undefined') {
-                    BACKGROUND_VIDEO_SOURCES.forEach((video, index) => {
-                        const option = document.createElement('option');
-                        option.value = index;
-                        option.textContent = video.name;
-                        bgSelect.appendChild(option);
-                    });
+                // Hide video background toggle in shader mode
+                const videoBackgroundToggleSection = document.getElementById('videoBackgroundToggleSection');
+                if (videoBackgroundToggleSection) {
+                    videoBackgroundToggleSection.style.display = 'none';
                 }
-                document.querySelectorAll('.color-picker').forEach(picker => {
-                    picker.style.display = 'none';
-                });
-                bgSelect.style.display = 'block';
-                document.getElementById('video-source-controls').style.display = 'block';
             } else if (mode === 1) { // Effects
                 const effects = [
                     // Original effects
@@ -608,15 +621,51 @@
                     bgSelect.appendChild(option);
                 });
                 document.querySelectorAll('.color-picker').forEach(picker => {
-                    picker.style.display = 'block';
+                    picker.style.display = 'none';
                 });
                 bgSelect.style.display = 'block';
-                document.getElementById('video-source-controls').style.display = 'none';
+                
+                // Show video background toggle and controls in effects mode
+                const videoBackgroundToggleSection = document.getElementById('videoBackgroundToggleSection');
+                const videoSourceControls = document.getElementById('video-source-controls');
+                
+                if (videoBackgroundToggleSection) {
+                    videoBackgroundToggleSection.style.display = 'block';
+                }
+                
+                if (videoSourceControls) {
+                    videoSourceControls.style.display = 'block';
+                }
                 
                 // Add event listener for effect selection
                 bgSelect.addEventListener('change', function() {
                     window.currentEffect = parseInt(this.value);
                 });
+            } else if (mode === 2) { // Video
+                if (BACKGROUND_VIDEO_SOURCES && BACKGROUND_VIDEO_SOURCES.length > 0) {
+                    BACKGROUND_VIDEO_SOURCES.forEach((video, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = video.name;
+                        bgSelect.appendChild(option);
+                    });
+                }
+                document.querySelectorAll('.color-picker').forEach(picker => {
+                    picker.style.display = 'none';
+                });
+                bgSelect.style.display = 'block';
+                
+                // Show video background toggle and controls in video mode
+                const videoBackgroundToggleSection = document.getElementById('videoBackgroundToggleSection');
+                const videoSourceControls = document.getElementById('video-source-controls');
+                
+                if (videoBackgroundToggleSection) {
+                    videoBackgroundToggleSection.style.display = 'block';
+                }
+                
+                if (videoSourceControls) {
+                    videoSourceControls.style.display = 'block';
+                }
             } else {
                 // Others
                 document.querySelectorAll('.color-picker').forEach(picker => {
@@ -624,6 +673,11 @@
                 });
                 bgSelect.style.display = 'none';
                 document.getElementById('video-source-controls').style.display = 'none';
+                // Hide video background toggle in other modes
+                const videoBackgroundToggleSection = document.getElementById('videoBackgroundToggleSection');
+                if (videoBackgroundToggleSection) {
+                    videoBackgroundToggleSection.style.display = 'none';
+                }
             }
             
             // Update window variables to communicate with p5js
@@ -657,8 +711,11 @@
             // Activate webcam source
             webcamSourceBtn.classList.add('active');
             uploadSourceBtn.classList.remove('active');
-            videoSource = 'webcam';
-            window.videoSource = 'webcam';
+            
+            // Update video source
+            if (window.updateVideoSource) {
+                window.updateVideoSource('webcam');
+            }
             
             // Update UI
             const uploadStatus = document.getElementById('upload-status');
@@ -669,8 +726,11 @@
             // Activate upload source
             uploadSourceBtn.classList.add('active');
             webcamSourceBtn.classList.remove('active');
-            videoSource = 'upload';
-            window.videoSource = 'upload';
+            
+            // Update video source
+            if (window.updateVideoSource) {
+                window.updateVideoSource('upload');
+            }
             
             // If no video uploaded yet, prompt for upload
             if (!uploadedVideo) {
@@ -688,36 +748,39 @@
             if (file) {
                 const url = URL.createObjectURL(file);
                 
-                // Store the uploaded file URL based on the current mode
-                const currentMode = window.selectedBackgroundMode;
-                
-                if (currentMode === 2 && file.type.startsWith('video/')) {
-                    // For video mode, set the uploaded video URL
+                // Store the uploaded file URL and switch source for both VIDEO and EFFECTS modes
+                if (file.type.startsWith('video/')) {
+                    // Set the uploaded video URL
                     window.uploadedVideoURL = url;
                     
                     // Switch to uploaded video source
                     videoSource = 'upload';
                     window.videoSource = 'upload';
-                    webcamSourceBtn.classList.remove('active');
-                    uploadSourceBtn.classList.add('active');
                     
-                    // Reset the uploadedVideo in sketch.js to force reload
+                    // Update UI
+                    if (webcamSourceBtn && uploadSourceBtn) {
+                        webcamSourceBtn.classList.remove('active');
+                        uploadSourceBtn.classList.add('active');
+                    }
+                    
+                    // Reset the uploadedVideo to force reload
                     if (typeof uploadedVideo !== 'undefined') {
                         uploadedVideo = null;
                     }
                     
-                    // Show a status message
+                    // Show upload status
                     const uploadStatus = document.getElementById('upload-status');
                     if (uploadStatus) {
                         uploadStatus.textContent = `Uploaded: ${file.name}`;
                         uploadStatus.style.display = 'block';
                     }
-                } else if (currentMode === 3) {
-                    // For custom background mode
-                    window.customBackgroundURL = url;
-                    window.customBackgroundType = file.type.startsWith('video/') ? 'video' : 'image';
-                } else if (!file.type.startsWith('video/')) {
-                    alert('Please upload a video file for the video mode');
+                    
+                    // Force video source update in sketch.js
+                    if (window.updateVideoSource) {
+                        window.updateVideoSource('upload');
+                    }
+                } else {
+                    alert('Please upload a video file');
                     return;
                 }
             }
@@ -799,6 +862,28 @@
                 toggleBtn.textContent = 'Hide';
             }
         });
+
+        // Initialize video background toggle state
+        window.videoBackgroundEnabled = false;
+        
+        // Handle video background toggle
+        if (videoBackgroundToggle) {
+            videoBackgroundToggle.addEventListener('change', function() {
+                window.videoBackgroundEnabled = this.checked;
+                console.log('Video background toggle:', this.checked ? 'ON' : 'OFF');
+                console.log('Current mode:', window.selectedBackgroundMode);
+                console.log('Video source:', window.videoSource || 'webcam');
+                
+                // Video controls should always be visible in EFFECTS and VIDEO modes
+                const currentMode = window.selectedBackgroundMode;
+                if (currentMode === 1 || currentMode === 2) { // Effects or Video mode
+                    const videoSourceControls = document.getElementById('video-source-controls');
+                    if (videoSourceControls) {
+                        videoSourceControls.style.display = 'block';
+                    }
+                }
+            });
+        }
     });
     
     // Debug helper for camera access and hands visualization

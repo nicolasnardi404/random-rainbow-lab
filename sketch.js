@@ -89,6 +89,7 @@ const VIDEO_WAVE = 28;
 const VIDEO_SPHERE = 29;
 const VIDEO_MIRROR_ROOM = 30;
 const VIDEO_PARTICLE_SWARM = 31;
+const VIDEO_OVERLAY = 32;
 
 // Colors
 const palette = [
@@ -159,6 +160,7 @@ const VIDEO_EFFECTS_LIST = [
   VIDEO_CUBES, // Re-enabled - user wants the squares effect
   // VIDEO_MOSAIC, // Removed - causing issues
   VIDEO_SPHERE,
+  VIDEO_OVERLAY, // New geometric overlay effect with video background
   // VIDEO_MIRROR_ROOM, // Removed - user didn't like it
   // VIDEO_PARTICLE_SWARM, // Removed - user didn't like it
 ];
@@ -713,6 +715,60 @@ function handleCustomBackground() {
 }
 
 function drawCrystalEffect() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -742,6 +798,60 @@ function drawCrystalEffect() {
 }
 
 function drawNebulaEffect() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -766,6 +876,60 @@ function drawNebulaEffect() {
 }
 
 function drawVortexEffect() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -795,6 +959,60 @@ function drawVortexEffect() {
 }
 
 function drawGalaxyEffect() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -827,6 +1045,60 @@ function drawGalaxyEffect() {
 }
 
 function drawFirefliesEffect() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -853,6 +1125,60 @@ function drawFirefliesEffect() {
 }
 
 function drawMirrorKaleidoscope() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTex = getCurrentVideoTexture();
+    if (videoTex && videoTex.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTex.width / videoTex.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTex, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   if (getCurrentVideoTexture() && getCurrentVideoTexture().loadedmetadata) {
     // Calculate dimensions to maintain aspect ratio
@@ -881,6 +1207,60 @@ function drawMirrorKaleidoscope() {
 }
 
 function drawPixelDisplace() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTex = getCurrentVideoTexture();
+    if (videoTex && videoTex.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTex.width / videoTex.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTex, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   if (getCurrentVideoTexture() && getCurrentVideoTexture().loadedmetadata) {
     // Make pixel size more responsive to hand movements and use effectScale
@@ -920,6 +1300,60 @@ function drawPixelDisplace() {
 }
 
 function drawParticleStorm() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTex = getCurrentVideoTexture();
+    if (videoTex && videoTex.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTex.width / videoTex.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTex, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noStroke();
 
@@ -1124,6 +1558,9 @@ function drawCurrentEffect() {
       break;
     case VIDEO_SPHERE:
       drawVideoSphere();
+      break;
+    case VIDEO_OVERLAY:
+      drawVideoOverlay();
       break;
     case VIDEO_MIRROR_ROOM:
       drawVideoMirrorRoom();
@@ -1536,10 +1973,34 @@ function clearPersistenceCanvas() {
 // Make the function globally available
 window.clearPersistenceCanvas = clearPersistenceCanvas;
 
+// Function to update video source and force reload
+window.updateVideoSource = function (source) {
+  videoSource = source;
+  window.videoSource = source;
+
+  // Force reload of video if needed
+  if (source === "upload" && window.uploadedVideoURL) {
+    if (uploadedVideo) {
+      uploadedVideo.remove();
+      uploadedVideo = null;
+    }
+    uploadedVideo = createVideo(window.uploadedVideoURL);
+    uploadedVideo.loop();
+    uploadedVideo.hide();
+    uploadedVideo.volume(0);
+  } else if (source === "webcam") {
+    if (!capture) {
+      capture = createCapture(VIDEO);
+      capture.hide();
+    }
+  }
+};
+
 // In video-based effects, use getCurrentVideoTexture() as the texture source
 function getCurrentVideoTexture() {
-  if (window.selectedBackgroundMode === 2) {
-    // Video mode - either webcam or uploaded video
+  // Return video texture if we're in video mode OR if video background is enabled
+  if (window.selectedBackgroundMode === 2 || window.videoBackgroundEnabled) {
+    // Video mode or video background enabled - either webcam or uploaded video
     if (
       videoSource === "upload" &&
       uploadedVideo &&
@@ -1555,6 +2016,60 @@ function getCurrentVideoTexture() {
 
 // New 3D Effects
 function drawFractal3D() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1589,6 +2104,60 @@ function drawFractal3D() {
 }
 
 function drawWireframe() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(1);
@@ -1630,6 +2199,60 @@ function drawWireframe() {
 }
 
 function drawSculpture3D() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1667,6 +2290,60 @@ function drawSculpture3D() {
 }
 
 function drawGeometric3D() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1704,6 +2381,60 @@ function drawGeometric3D() {
 }
 
 function drawNoiseField3D() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(1);
@@ -1730,6 +2461,60 @@ function drawNoiseField3D() {
 
 // New Particle Effects
 function drawParticleFlow() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1759,6 +2544,60 @@ function drawParticleFlow() {
 }
 
 function drawMagneticField() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(1);
@@ -1795,6 +2634,60 @@ function drawMagneticField() {
 }
 
 function drawFluidSim() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1824,6 +2717,60 @@ function drawFluidSim() {
 }
 
 function drawParticleExplosion() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1853,6 +2800,60 @@ function drawParticleExplosion() {
 }
 
 function drawTrailSystem() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1883,6 +2884,60 @@ function drawTrailSystem() {
 
 // New Neural Effects
 function drawStyleTransfer() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1919,6 +2974,60 @@ function drawStyleTransfer() {
 }
 
 function drawNeuralWarp() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(1);
@@ -1948,6 +3057,60 @@ function drawNeuralWarp() {
 }
 
 function drawDeepDream() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -1985,6 +3148,60 @@ function drawDeepDream() {
 }
 
 function drawAIPatterns() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(1);
@@ -2014,6 +3231,60 @@ function drawAIPatterns() {
 }
 
 function drawNeuralFlow() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = getCurrentVideoTexture();
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   push();
   noFill();
   strokeWeight(2);
@@ -2055,6 +3326,62 @@ function drawVideoPlanes() {
 }
 
 function drawVideoTunnel() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = window.getCurrentVideoTexture
+      ? window.getCurrentVideoTexture()
+      : null;
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   const videoTex = window.getCurrentVideoTexture
     ? window.getCurrentVideoTexture()
     : null;
@@ -2109,6 +3436,62 @@ function drawVideoRibbon() {
 }
 
 function drawVideoCubes() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = window.getCurrentVideoTexture
+      ? window.getCurrentVideoTexture()
+      : null;
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   const videoTex = window.getCurrentVideoTexture
     ? window.getCurrentVideoTexture()
     : null;
@@ -2213,6 +3596,62 @@ function drawVideoWave() {
 }
 
 function drawVideoSphere() {
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    const videoTexBg = window.getCurrentVideoTexture
+      ? window.getCurrentVideoTexture()
+      : null;
+    if (videoTexBg && videoTexBg.loadedmetadata) {
+      // Exit 3D transformation context to draw background in screen space
+      pop();
+
+      // Draw video as full-screen background
+      push();
+      resetMatrix();
+      translate(-width / 2, -height / 2);
+      imageMode(CORNER);
+
+      // Calculate aspect ratio to cover entire screen
+      let videoAspect = videoTexBg.width / videoTexBg.height;
+      let screenAspect = width / height;
+      let drawWidth,
+        drawHeight,
+        offsetX = 0,
+        offsetY = 0;
+
+      if (videoAspect > screenAspect) {
+        drawHeight = height;
+        drawWidth = height * videoAspect;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        drawWidth = width;
+        drawHeight = width / videoAspect;
+        offsetY = (height - drawHeight) / 2;
+      }
+
+      if (drawWidth < width) {
+        let scale = width / drawWidth;
+        drawWidth = width;
+        drawHeight = drawHeight * scale;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      }
+      if (drawHeight < height) {
+        let scale = height / drawHeight;
+        drawHeight = height;
+        drawWidth = drawWidth * scale;
+        offsetY = 0;
+        offsetX = (width - drawWidth) / 2;
+      }
+
+      image(videoTexBg, offsetX, offsetY, drawWidth, drawHeight);
+      pop();
+
+      // Re-enter 3D transformation context for overlay effects
+      push();
+    }
+  }
+
   const videoTex = window.getCurrentVideoTexture
     ? window.getCurrentVideoTexture()
     : null;
@@ -2251,67 +3690,280 @@ function drawVideoMirrorRoom() {
 }
 
 function drawVideoParticleSwarm() {
+  // This effect has been disabled per user request
+  return;
+}
+
+function drawVideoOverlay() {
   const videoTex = window.getCurrentVideoTexture
     ? window.getCurrentVideoTexture()
     : null;
   if (!videoTex || !videoTex.loadedmetadata) return;
 
-  // Hand controls
-  let centerX = 0,
-    centerY = 0,
-    centerZ = 0,
-    spread = 180,
-    rotY = 0,
-    rotX = 0;
-  if (hands && hands.length > 0 && hands[0]) {
-    centerX = map(hands[0][0].x, 0, width, -width / 2, width / 2);
-    centerY = map(hands[0][0].y, 0, height, -height / 2, height / 2);
-    centerZ = hands[0][0].z * 400;
-    if (hands[0][1] && hands[0][2]) {
-      let handScale = p5.Vector.dist(hands[0][1], hands[0][2]);
-      spread = map(handScale, 50, 200, 80, 320);
+  // Check if video background toggle is enabled
+  if (window.videoBackgroundEnabled) {
+    // IMPORTANT: This effect needs to ignore all 3D transformations from drawCurrentEffect
+    // We need to draw the video background in screen space, not 3D space
+    pop(); // Exit the 3D transformation context from drawCurrentEffect
+
+    // Draw video as a true background layer - completely static and non-interactive
+    // This should cover the entire screen with no black areas
+    push();
+
+    // Reset ALL transformations to draw in pure screen coordinates
+    resetMatrix();
+
+    // Move to screen coordinates (WEBGL uses center as origin)
+    translate(-width / 2, -height / 2);
+
+    // Use image() function to draw the video texture directly like an image
+    imageMode(CORNER);
+
+    // Calculate aspect ratio to COVER the entire screen (no black areas)
+    let videoAspect = videoTex.width / videoTex.height;
+    let screenAspect = width / height;
+
+    let drawWidth, drawHeight;
+    let offsetX = 0,
+      offsetY = 0;
+
+    // Always scale to cover the entire screen (crop if needed, no black areas)
+    if (videoAspect > screenAspect) {
+      // Video is wider - scale to screen height and crop left/right if needed
+      drawHeight = height;
+      drawWidth = height * videoAspect;
+      offsetX = (width - drawWidth) / 2;
+    } else {
+      // Video is taller - scale to screen width and crop top/bottom if needed
+      drawWidth = width;
+      drawHeight = width / videoAspect;
+      offsetY = (height - drawHeight) / 2;
     }
+
+    // Ensure we always fill the entire screen by scaling up if needed
+    if (drawWidth < width) {
+      let scale = width / drawWidth;
+      drawWidth = width;
+      drawHeight = drawHeight * scale;
+      offsetX = 0;
+      offsetY = (height - drawHeight) / 2;
+    }
+
+    if (drawHeight < height) {
+      let scale = height / drawHeight;
+      drawHeight = height;
+      drawWidth = drawWidth * scale;
+      offsetY = 0;
+      offsetX = (width - drawWidth) / 2;
+    }
+
+    // Draw the video texture as a background image, guaranteed to cover full screen
+    image(videoTex, offsetX, offsetY, drawWidth, drawHeight);
+
+    pop();
+
+    // Re-enter 3D transformation context for overlay effects
+    push();
+  }
+
+  // Now add psychedelic geometric overlay effects on top of the video background (or regular background)
+  push();
+
+  // Reset matrix again to work in screen space for overlay effects
+  resetMatrix();
+
+  // Hand controls for overlay effects
+  let centerX = 0,
+    centerY = 0;
+  let effectSize = 150;
+  let rotationSpeed = 0;
+  let numLayers = 3;
+  let waveAmplitude = 50;
+
+  if (hands && hands.length > 0 && hands[0]) {
+    // Right hand controls position and size
+    centerX = map(hands[0][0].x, 0, width, -width / 3, width / 3);
+    centerY = map(hands[0][0].y, 0, height, -height / 3, height / 3);
+
+    // Pinch controls effect size
+    if (hands[0][1] && hands[0][2]) {
+      let pinchDist = p5.Vector.dist(hands[0][1], hands[0][2]);
+      effectSize = map(pinchDist, 30, 150, 80, 300);
+    }
+
+    // Hand rotation controls spin speed
     if (handRotation !== undefined) {
-      rotY = handRotation;
-      rotX = Math.sin(handRotation) * Math.PI * 0.3;
+      rotationSpeed = handRotation * 0.5;
+    }
+
+    // Left hand controls wave amplitude and layers
+    if (hands.length > 1 && hands[1] && hands[1][0]) {
+      waveAmplitude = map(hands[1][0].y, 0, height, 20, 100);
+      numLayers = Math.floor(map(hands[1][0].x, 0, width, 2, 6));
     }
   }
 
-  let numParticles = 36;
-  let pSize = 48;
-  let time = millis() * 0.001;
+  translate(centerX, centerY);
 
-  push();
-  translate(centerX, centerY, centerZ);
-  rotateY(rotY);
-  rotateX(rotX);
-  textureMode(NORMAL);
-  texture(videoTex);
-  noStroke();
-  for (let i = 0; i < numParticles; i++) {
-    let angle = map(i, 0, numParticles, 0, TWO_PI) + time * 0.7;
-    let r = spread + 40 * Math.sin(time * 1.2 + i);
-    let x = Math.cos(angle) * r + Math.sin(time + i) * 30;
-    let y = Math.sin(angle * 1.3) * r * 0.7 + Math.cos(time * 0.8 + i) * 18;
-    let z = Math.sin(angle) * r * 0.5 + Math.sin(time * 1.1 + i) * 22;
-    let u0 = (i % 6) / 6,
-      v0 = Math.floor(i / 6) / 6;
-    let u1 = ((i % 6) + 1) / 6,
-      v1 = (Math.floor(i / 6) + 1) / 6;
-    // Clamp values to ensure they stay within 0-1
-    u1 = Math.min(u1, 1.0);
-    v1 = Math.min(v1, 1.0);
+  // Create multiple layers of psychedelic geometric effects
+  for (let layer = 0; layer < numLayers; layer++) {
     push();
-    translate(x, y, z);
-    rotateY(angle + time * 0.5);
-    rotateX(angle * 0.5 + time * 0.3);
-    beginShape();
-    vertex(-pSize / 2, -pSize / 2, 0, u0, v0);
-    vertex(pSize / 2, -pSize / 2, 0, u1, v0);
-    vertex(pSize / 2, pSize / 2, 0, u1, v1);
-    vertex(-pSize / 2, pSize / 2, 0, u0, v1);
-    endShape(CLOSE);
+
+    // Each layer rotates at different speeds
+    let layerRotation = millis() * 0.001 * (layer + 1) + rotationSpeed;
+    rotateZ(layerRotation);
+
+    // Layer-specific properties
+    let layerSize = effectSize * (1 - layer * 0.2);
+    let numShapes = 8 + layer * 4;
+
+    // Draw geometric shapes with video texture
+    for (let i = 0; i < numShapes; i++) {
+      push();
+
+      let angle = (TWO_PI / numShapes) * i;
+      let radius =
+        layerSize + sin(millis() * 0.003 + i + layer) * waveAmplitude;
+
+      let x = cos(angle) * radius;
+      let y = sin(angle) * radius;
+      let z = sin(millis() * 0.002 + i * 0.5) * 30;
+
+      translate(x, y, z);
+      rotateZ(angle + millis() * 0.002);
+      rotateY(millis() * 0.001 + i);
+
+      // Apply video texture to shapes
+      textureMode(NORMAL);
+      texture(videoTex);
+      noStroke();
+
+      // Different geometric shapes for psychedelic effect
+      let shapeType = (i + layer) % 4;
+
+      if (shapeType === 0) {
+        // Triangular prisms
+        fill(255, 200 + layer * 20);
+        beginShape(TRIANGLES);
+        let size = 30 + layer * 10;
+        // Front face
+        vertex(-size / 2, -size / 2, size / 2, 0.2, 0.2);
+        vertex(size / 2, -size / 2, size / 2, 0.8, 0.2);
+        vertex(0, size / 2, size / 2, 0.5, 0.8);
+        // Back face
+        vertex(-size / 2, -size / 2, -size / 2, 0.2, 0.2);
+        vertex(0, size / 2, -size / 2, 0.5, 0.8);
+        vertex(size / 2, -size / 2, -size / 2, 0.8, 0.2);
+        endShape();
+      } else if (shapeType === 1) {
+        // Hexagonal shapes
+        fill(255, 180 + layer * 15);
+        beginShape();
+        let size = 25 + layer * 8;
+        for (let j = 0; j < 6; j++) {
+          let hexAngle = (TWO_PI / 6) * j;
+          let hx = cos(hexAngle) * size;
+          let hy = sin(hexAngle) * size;
+          let u = map(hx, -size, size, 0.1, 0.9);
+          let v = map(hy, -size, size, 0.1, 0.9);
+          vertex(hx, hy, 0, u, v);
+        }
+        endShape(CLOSE);
+      } else if (shapeType === 2) {
+        // Rotating cubes
+        fill(255, 160 + layer * 25);
+        let size = 20 + layer * 6;
+        rotateX(millis() * 0.003);
+        rotateY(millis() * 0.002);
+        box(size);
+      } else {
+        // Morphing ellipses
+        fill(255, 140 + layer * 30);
+        let sizeX = 35 + sin(millis() * 0.004 + i) * 15;
+        let sizeY = 25 + cos(millis() * 0.003 + i) * 10;
+        ellipse(0, 0, sizeX, sizeY);
+      }
+
+      pop();
+    }
+
+    // Add connecting lines between shapes for extra psychedelic effect
+    stroke(255, 255, 0, 100 + layer * 20);
+    strokeWeight(1 + layer * 0.5);
+    noFill();
+
+    for (let i = 0; i < numShapes; i++) {
+      let angle1 = (TWO_PI / numShapes) * i;
+      let angle2 = (TWO_PI / numShapes) * ((i + 1) % numShapes);
+      let radius1 =
+        layerSize + sin(millis() * 0.003 + i + layer) * waveAmplitude;
+      let radius2 =
+        layerSize + sin(millis() * 0.003 + (i + 1) + layer) * waveAmplitude;
+
+      let x1 = cos(angle1 + layerRotation) * radius1;
+      let y1 = sin(angle1 + layerRotation) * radius1;
+      let x2 = cos(angle2 + layerRotation) * radius2;
+      let y2 = sin(angle2 + layerRotation) * radius2;
+
+      line(x1, y1, x2, y2);
+    }
+
     pop();
   }
+
+  // Add particle trails that follow hand movement with video texture
+  if (hands && hands.length > 0 && hands[0]) {
+    // Store trail points
+    if (!window.overlayTrailPoints) window.overlayTrailPoints = [];
+
+    window.overlayTrailPoints.push({
+      x: centerX,
+      y: centerY,
+      time: millis(),
+      size: effectSize * 0.1,
+    });
+
+    // Remove old points
+    window.overlayTrailPoints = window.overlayTrailPoints.filter(
+      (p) => millis() - p.time < 3000
+    );
+
+    // Draw psychedelic trail with video texture
+    for (let i = 0; i < window.overlayTrailPoints.length - 1; i++) {
+      let point = window.overlayTrailPoints[i];
+      let nextPoint = window.overlayTrailPoints[i + 1];
+      let alpha = map(millis() - point.time, 0, 3000, 255, 0);
+
+      push();
+      translate(point.x, point.y);
+
+      // Create small video-textured shapes along the trail
+      textureMode(NORMAL);
+      texture(videoTex);
+      fill(255, alpha * 0.7);
+      noStroke();
+
+      let trailSize = point.size * map(alpha, 0, 255, 0.2, 1);
+      beginShape();
+      vertex(-trailSize, -trailSize, 0, 0.3, 0.3);
+      vertex(trailSize, -trailSize, 0, 0.7, 0.3);
+      vertex(trailSize, trailSize, 0, 0.7, 0.7);
+      vertex(-trailSize, trailSize, 0, 0.3, 0.7);
+      endShape(CLOSE);
+
+      pop();
+
+      // Connect trail points with glowing lines
+      stroke(255, 100, 255, alpha * 0.5);
+      strokeWeight(2);
+      if (nextPoint) {
+        line(point.x, point.y, nextPoint.x, nextPoint.y);
+      }
+    }
+  }
+
   pop();
+
+  // Re-enter the 3D transformation context for any overlay effects
+  push();
 }
