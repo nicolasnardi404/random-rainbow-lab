@@ -31,7 +31,7 @@
             background: rgba(0,0,0,0.7);
             padding: 15px;
             border-radius: 5px;
-            display: block;
+            display: none;
             z-index: 1000;
         }
         #instructions {
@@ -480,63 +480,44 @@
             • Move left/right to change colors<br>
             • Movement speed controls energy level
         </div>
-        <div class="hand-control">
-            <strong>Keyboard:</strong><br>
-            • Press SPACE to change effects<br>
-            • Press 'D' to toggle debug info<br>
-            • Press 'R' to toggle recording<br>
-            • Press 'T' to toggle trails<br>
-            • Press 'C' to clear trails<br>
-            • Press 'V' to toggle video background
-        </div>
-        <div class="hand-control">
-            <strong>Recording:</strong><br>
-            • Click the "Start Recording" button or press 'R'<br>
-            • Recording will save as MP4 when supported by your browser<br>
-            • Otherwise saves as WebM that can be converted online
-        </div>
         <div id="keyboard-shortcuts">
             <h3 style="color: #00ffff; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 5px #00ffff;">Keyboard Shortcuts</h3>
             <div class="shortcut-grid">
                 <div class="shortcut-item">
                     <span class="key">Space</span>
-                    <span>Cycle Effects</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">P</span>
-                    <span>Play/Pause</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">W</span>
-                    <span>Toggle Webcam</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">+</span>
-                    <span>Increase Effect</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">-</span>
-                    <span>Decrease Effect</span>
+                    <span>- Cycle Effects</span>
                 </div>
                 <div class="shortcut-item">
                     <span class="key">R</span>
-                    <span>Toggle Recording</span>
+                    <span>- Toggle Recording</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">T</span>
+                    <span>- Toggle Trails</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">C</span>
+                    <span>- Clear Trails</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">V</span>
+                    <span>- Video Background</span>
                 </div>
                 <div class="shortcut-item">
                     <span class="key">\</span>
-                    <span>Toggle Background</span>
+                    <span>- Background Effects</span>
                 </div>
                 <div class="shortcut-item">
                     <span class="key">[</span>
-                    <span>Decrease BG Effect</span>
+                    <span>- Decrease Background Effect</span>
                 </div>
                 <div class="shortcut-item">
                     <span class="key">]</span>
-                    <span>Increase BG Effect</span>
+                    <span>- Increase Background Effect</span>
                 </div>
                 <div class="shortcut-item">
-                    <span class="key">1-5</span>
-                    <span>Change BG Style</span>
+                    <span class="key">1 to 5</span>
+                    <span>- Change Background Effect</span>
                 </div>
             </div>
         </div>
@@ -642,10 +623,17 @@
                 });
                 bgSelect.style.display = 'block';
                 document.getElementById('video-source-controls').style.display = 'none';
-                // Hide video background toggle in shader mode
+                
+                // Always hide video background toggle in shader mode
                 const videoBackgroundToggleSection = document.getElementById('videoBackgroundToggleSection');
                 if (videoBackgroundToggleSection) {
                     videoBackgroundToggleSection.style.display = 'none';
+                }
+                
+                // Force disable video background in shader mode
+                if (videoBackgroundToggle) {
+                    videoBackgroundToggle.checked = false;
+                    window.videoBackgroundEnabled = false;
                 }
             } else if (mode === 1) { // Effects
                 const effects = [
@@ -929,18 +917,25 @@
         // Handle video background toggle
         if (videoBackgroundToggle) {
             videoBackgroundToggle.addEventListener('change', function() {
-                window.videoBackgroundEnabled = this.checked;
-                console.log('Video background toggle:', this.checked ? 'ON' : 'OFF');
-                console.log('Current mode:', window.selectedBackgroundMode);
-                console.log('Video source:', window.videoSource || 'webcam');
-                
-                // Video controls should always be visible in EFFECTS and VIDEO modes
+                // Only allow toggling if not in shader mode
                 const currentMode = window.selectedBackgroundMode;
-                if (currentMode === 1 || currentMode === 2) { // Effects or Video mode
-                    const videoSourceControls = document.getElementById('video-source-controls');
-                    if (videoSourceControls) {
-                        videoSourceControls.style.display = 'block';
+                if (currentMode !== 0) {
+                    window.videoBackgroundEnabled = this.checked;
+                    console.log('Video background toggle:', this.checked ? 'ON' : 'OFF');
+                    console.log('Current mode:', currentMode);
+                    console.log('Video source:', window.videoSource || 'webcam');
+                    
+                    // Video controls should always be visible in EFFECTS and VIDEO modes
+                    if (currentMode === 1 || currentMode === 2) { // Effects or Video mode
+                        const videoSourceControls = document.getElementById('video-source-controls');
+                        if (videoSourceControls) {
+                            videoSourceControls.style.display = 'block';
+                        }
                     }
+                } else {
+                    // If in shader mode, prevent toggling and uncheck
+                    this.checked = false;
+                    window.videoBackgroundEnabled = false;
                 }
             });
         }

@@ -308,10 +308,10 @@ function setup() {
   canvas.id("main-effects-canvas");
 
   // Initialize debug mode
-  debugMode = true;
+  debugMode = false;
   const debugPanel = document.getElementById("debug-panel");
   if (debugPanel) {
-    debugPanel.style.display = "block";
+    debugPanel.style.display = "none";
   }
 
   // Initialize background effect variables
@@ -449,18 +449,18 @@ function draw() {
   // Draw black background first
   background(0);
 
-  // Draw background effects if enabled
-  if (bgEffectEnabled) {
-    push();
-    drawBackground();
-    pop();
-  }
-
   // Get the current mode
   const mode =
     window.selectedBackgroundMode !== undefined
       ? window.selectedBackgroundMode
       : 0; // default to shader
+
+  // Always draw background in shader mode, or when enabled in other modes
+  if (mode === 0 || bgEffectEnabled) {
+    push();
+    drawBackground();
+    pop();
+  }
 
   // Draw the persistence canvas (trails)
   if (window.persistenceEnabled || hasTrails) {
@@ -1799,32 +1799,32 @@ function keyPressed() {
       `Effect: ${effectNames[currentEffect]}`,
       color(0, 255, 255)
     );
-  } else if (key === "r" || key === "R") {
-    // Toggle recording with 'r' key
-    toggleRecording();
   } else if (key === "\\") {
-    // Toggle background effect
-    bgEffectEnabled = !bgEffectEnabled;
-    showNotification(
-      `Background Effect: ${bgEffectEnabled ? "ON" : "OFF"}`,
-      color(0, 255, 255)
-    );
+    // Only toggle background effects if not in shader mode
+    const mode =
+      window.selectedBackgroundMode !== undefined
+        ? window.selectedBackgroundMode
+        : 0;
+    if (mode !== 0) {
+      bgEffectEnabled = !bgEffectEnabled;
+      showNotification(
+        `Background Effects: ${bgEffectEnabled ? "ON" : "OFF"}`,
+        color(0, 255, 255)
+      );
+    }
   } else if (key === "[") {
-    // Decrease background effect intensity
-    bgEffectIntensity = max(0.1, bgEffectIntensity - 0.1);
+    bgEffectIntensity = max(0, bgEffectIntensity - 0.1);
     showNotification(
-      `Background Intensity: ${Math.round(bgEffectIntensity * 100)}%`,
+      `Effect Intensity: ${Math.round(bgEffectIntensity * 100)}%`,
       color(0, 255, 255)
     );
   } else if (key === "]") {
-    // Increase background effect intensity
-    bgEffectIntensity = min(1.0, bgEffectIntensity + 0.1);
+    bgEffectIntensity = min(1, bgEffectIntensity + 0.1);
     showNotification(
-      `Background Intensity: ${Math.round(bgEffectIntensity * 100)}%`,
+      `Effect Intensity: ${Math.round(bgEffectIntensity * 100)}%`,
       color(0, 255, 255)
     );
   } else if (key >= "1" && key <= "5") {
-    // Change background effect type
     bgEffectType = parseInt(key) - 1;
     const effectNames = ["Waves", "Spiral", "Grid", "Noise", "Plasma"];
     showNotification(
