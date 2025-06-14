@@ -443,12 +443,27 @@
     </div>
     
     <div id="debug-panel">
-        <div id="fps"></div>
-        <div id="hands-count"></div>
-        <div id="current-effect"></div>
-        <div id="controls"></div>
+        <div id="fps">FPS: 0</div>
+        <div id="hands-count">Hands detected: 0</div>
+        <div id="current-effect">Effect: None</div>
+        <div id="controls">
+            Scale: 0<br>
+            Energy: 0%<br>
+            Color: 0°<br>
+            Hand Rotation: 0°<br>
+            Rotation Speed: 0
+        </div>
         <div id="ghost-status">Trail recording: OFF</div>
-        <div id="camera-status">Camera: Waiting...</div>
+        <div id="bg-effects" style="margin-top: 10px; border-top: 1px solid #00ffff; padding-top: 10px;">
+            Background Effects: OFF<br>
+            Current Effect: None<br>
+            Intensity: 0%<br>
+            Mode: SHADER<br>
+            Controls:<br>
+            - Press \ to toggle effects<br>
+            - Keys 1-5 to change effect<br>
+            - [ ] to adjust intensity
+        </div>
     </div>
     <div id="instructions">
         <button id="toggle-instructions">Hide</button>
@@ -479,6 +494,51 @@
             • Click the "Start Recording" button or press 'R'<br>
             • Recording will save as MP4 when supported by your browser<br>
             • Otherwise saves as WebM that can be converted online
+        </div>
+        <div id="keyboard-shortcuts">
+            <h3 style="color: #00ffff; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 5px #00ffff;">Keyboard Shortcuts</h3>
+            <div class="shortcut-grid">
+                <div class="shortcut-item">
+                    <span class="key">Space</span>
+                    <span>Cycle Effects</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">P</span>
+                    <span>Play/Pause</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">W</span>
+                    <span>Toggle Webcam</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">+</span>
+                    <span>Increase Effect</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">-</span>
+                    <span>Decrease Effect</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">R</span>
+                    <span>Toggle Recording</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">\</span>
+                    <span>Toggle Background</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">[</span>
+                    <span>Decrease BG Effect</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">]</span>
+                    <span>Increase BG Effect</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">1-5</span>
+                    <span>Change BG Style</span>
+                </div>
+            </div>
         </div>
     </div>
     <div id="camera-permission">

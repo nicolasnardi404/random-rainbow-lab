@@ -121,6 +121,18 @@ let bgVideos = [];
 let customBg;
 let customBgType;
 
+// Background effect variables
+let bgEffectEnabled = false;
+let bgEffectType = 0;
+let bgEffectIntensity = 0.5;
+const BG_EFFECTS = {
+  WAVES: 0,
+  SPIRAL: 1,
+  GRID: 2,
+  NOISE: 3,
+  PLASMA: 4,
+};
+
 // --- VIDEO SOURCE HANDLING ---
 // videoSource is declared above ("webcam" or "upload")
 
@@ -291,21 +303,52 @@ function onResults(results) {
 function setup() {
   console.log("P5.js setup function called");
 
-  // Create the main canvas that will contain all effects
-  let mainCanvas = createCanvas(windowWidth, windowHeight, WEBGL);
+  // Create main canvas
+  const canvas = createCanvas(windowWidth, windowHeight, WEBGL);
+  canvas.id("main-effects-canvas");
 
-  // Set an ID for easier access later
-  mainCanvas.id("main-effects-canvas");
+  // Initialize debug mode
+  debugMode = true;
+  const debugPanel = document.getElementById("debug-panel");
+  if (debugPanel) {
+    debugPanel.style.display = "block";
+  }
 
-  console.log("Main canvas created:", mainCanvas);
-  console.log("Canvas element:", mainCanvas.elt);
+  // Initialize background effect variables
+  bgEffectEnabled = false;
+  bgEffectType = BG_EFFECTS.WAVES;
+  bgEffectIntensity = 0.5;
 
+  // Initialize other variables
   colorMode(HSB);
-  textureMode(NORMAL);
+  debugMode = false;
+  currentEffect = 0;
+  energyLevel = 0;
+  colorShift = 0;
+  effectScale = 200;
+  rotationAngle = 0;
+  handRotation = 0;
+  rotationSpeed = 0;
+  hands = [];
 
-  // Create persistence canvas with the correct size
-  persistCanvas = createGraphics(windowWidth, windowHeight);
-  persistCanvas.background(0);
+  // Create persistence canvas for trails
+  persistCanvas = createGraphics(width, height);
+  persistCanvas.clear();
+
+  // Initialize MediaPipe
+  setupMediaPipe();
+
+  // Initialize backgrounds
+  initBackgrounds();
+
+  // Set initial mode and effect
+  currentBackground = 0;
+  backgroundMode = 0;
+  currentShader = 0;
+  shaderTime = 0;
+
+  // Default video source
+  videoSource = "webcam";
 
   // Get the record button from HTML
   recordButton = select("#record-button");
@@ -349,22 +392,6 @@ function setup() {
       v: random(1),
     });
   }
-
-  // Initialize backgrounds
-  initBackgrounds();
-
-  // Wait a small delay to ensure DOM is fully ready
-  setTimeout(() => {
-    setupMediaPipe();
-
-    // Set up debug panel
-    const debugPanel = document.getElementById("debug-panel");
-    if (debugPanel) {
-      debugPanel.style.display = debugMode ? "block" : "none";
-    } else {
-      console.error("Debug panel element not found");
-    }
-  }, 1000);
 }
 
 function initBackgrounds() {
@@ -412,31 +439,43 @@ function initBackgrounds() {
   });
 }
 
+// Add this at the top of the file with other global variables
+let hasTrails = false;
+
 function draw() {
   // Clear the canvas at the beginning of each frame
   clear();
 
-  // Draw background first - this will fill entire screen
-  drawBackground();
+  // Draw black background first
+  background(0);
 
-  // If in shader mode, skip effects and persistence
+  // Draw background effects if enabled
+  if (bgEffectEnabled) {
+    push();
+    drawBackground();
+    pop();
+  }
+
+  // Get the current mode
   const mode =
     window.selectedBackgroundMode !== undefined
       ? window.selectedBackgroundMode
       : 0; // default to shader
-  if (mode === 0) {
-    // Only shader background, no effects or persistence
-    return;
+
+  // Draw the persistence canvas (trails)
+  if (window.persistenceEnabled || hasTrails) {
+    push();
+    resetMatrix();
+    translate(-width / 2, -height / 2, 0);
+    imageMode(CORNER);
+    image(persistCanvas, 0, 0, width, height);
+    pop();
   }
 
-  // Always draw the persistence canvas (to show existing trails)
-  push();
-  // In WEBGL mode, we need to reset the coordinate system and translate to draw full screen
-  resetMatrix();
-  translate(-width / 2, -height / 2, 0);
-  imageMode(CORNER);
-  image(persistCanvas, 0, 0, width, height);
-  pop();
+  // If in shader mode, skip main effects
+  if (mode === 0) {
+    return;
+  }
 
   // Main drawing code starts here
   push();
@@ -458,21 +497,16 @@ function draw() {
     currentEffect = window.currentEffect;
   }
 
-  // Always draw some default effect even if hands are not detected
+  // Draw effects based on hand detection
   if (hands.length === 0) {
-    resetMatrix(); // Reset to center of screen
-    // Don't translate, keep in center for better composition
-
-    // Draw a default effect with auto rotation
+    resetMatrix();
     push();
     rotateY(rotationAngle);
     rotateX(rotationAngle * 0.5);
-
-    // Draw the current effect
     drawCurrentEffect();
     pop();
   } else if (hands.length > 0) {
-    // Left hand controls position and scale
+    // Handle hand controls
     if (hands[0]) {
       const palmPos = hands[0][0];
       const thumbPos = hands[0][1];
@@ -489,37 +523,27 @@ function draw() {
         0
       );
 
-      // Right hand control (if available)
+      // Right hand control
       if (hands.length > 1 && hands[1]) {
         const rightPalmVel = createVector(
           hands[1][0].x - hands[1][0].x,
           hands[1][0].y - hands[1][0].y
         );
-
-        // Calculate energy level based on hand movement speed
         const rightHandSpeed = rightPalmVel.mag();
         energyLevel = lerp(energyLevel, rightHandSpeed * 10, 0.1);
-
-        // Map X position of right hand to color shift
         colorShift = map(hands[1][0].x, 0, width, 0, 255);
       }
     }
-
-    // Draw the current effect
     drawCurrentEffect();
   }
-
-  // End main drawing
   pop();
 
-  // Only update the persistence canvas with new trails if the effect is enabled
-  // This ensures we respect the trail recording state across effect changes
+  // Update persistence canvas if enabled
   if (window.persistenceEnabled) {
     updatePersistenceCanvas();
   }
-  // Note: We no longer clear the persistence canvas when the effect is disabled
 
-  // Only show effects from the current mode
+  // Ensure current effect is allowed in this mode
   let allowedEffects = EFFECTS_LIST;
   if (mode === 2) allowedEffects = VIDEO_EFFECTS_LIST;
   if (!allowedEffects.includes(currentEffect)) {
@@ -528,22 +552,18 @@ function draw() {
 }
 
 function updatePersistenceCanvas() {
-  // Ensure we never reset the persistence canvas when changing effects
   // Get current frame
   let currentFrame = get();
 
-  // Apply fade to persistence canvas - this creates the trail effect
-  // by slightly fading the existing content rather than completely erasing it
+  // Apply fade to persistence canvas
   persistCanvas.push();
   persistCanvas.fill(0, 0, 0, 1.0 - persistenceAlpha);
   persistCanvas.noStroke();
   persistCanvas.rect(0, 0, persistCanvas.width, persistCanvas.height);
   persistCanvas.pop();
 
-  // Ensure image uses corner mode
+  // Draw current frame to persistence canvas
   persistCanvas.imageMode(CORNER);
-  // Draw current frame to persistence canvas (full size)
-  // This adds the current frame to the persistence canvas
   persistCanvas.image(
     currentFrame,
     0,
@@ -551,6 +571,8 @@ function updatePersistenceCanvas() {
     persistCanvas.width,
     persistCanvas.height
   );
+
+  hasTrails = true;
 }
 
 function drawBackground() {
@@ -571,13 +593,21 @@ function drawBackground() {
   // Reset any transformations so background fills screen
   resetMatrix();
 
-  // In WEBGL mode, coordinates are centered at (0,0)
-  // We need to draw a rect that covers the entire screen
+  // Draw black background first
+  background(0);
 
   // For shaders, we'll use the shader's coordinate system
   if (mode === 0) {
     // Shader
     if (shaders.length > 0 && index < shaders.length) {
+      push();
+      // Use screen blending if background effect is enabled
+      if (bgEffectEnabled) {
+        blendMode(SCREEN);
+        // Reduce the opacity of the shader
+        tint(255, 150);
+      }
+
       shader(shaders[index]);
 
       // Set shader uniforms
@@ -616,11 +646,12 @@ function drawBackground() {
       thisShader.setUniform("u_handDist", handDist);
       // --- End hand control uniforms ---
 
-      // Draw shader as full-screen rectangle - make even larger to guarantee coverage
+      // Draw shader as full-screen rectangle
       rectMode(CENTER);
-      // Draw a rectangle 2x the size of the canvas to ensure full coverage
       rect(0, 0, width * 2.0, height * 2.0);
       resetShader();
+      noTint();
+      pop();
     }
   } else {
     // For videos and custom backgrounds, we need to position differently
@@ -632,9 +663,14 @@ function drawBackground() {
       if (videoSource === "webcam") {
         // Use the selected background video
         if (bgVideos.length > 0 && index < bgVideos.length) {
+          push();
+          // Dim the video slightly to make effects more visible
+          tint(255, 200);
           texture(bgVideos[index]);
           rectMode(CORNER);
           rect(0, 0, width, height);
+          noTint();
+          pop();
         }
       } else if (videoSource === "upload") {
         // Use the uploaded video
@@ -646,6 +682,21 @@ function drawBackground() {
     } else if (mode === 4) {
       // Upload video mode
       handleUploadedVideo();
+    }
+
+    // Draw psychedelic background if enabled - now after the video
+    if (bgEffectEnabled) {
+      push();
+      // Use multiply blend mode for better visibility
+      blendMode(MULTIPLY);
+      drawPsychedelicBackground();
+      pop();
+
+      // Add a second layer with screen blend for glow
+      push();
+      blendMode(SCREEN);
+      drawPsychedelicBackground();
+      pop();
     }
   }
 
@@ -1580,6 +1631,7 @@ function updateDebugPanel() {
     const currentEffectDiv = document.getElementById("current-effect");
     const controlsDiv = document.getElementById("controls");
     const ghostStatusDiv = document.getElementById("ghost-status");
+    const bgEffectsDiv = document.getElementById("bg-effects");
 
     if (!fpsDiv || !handsCountDiv || !currentEffectDiv || !controlsDiv) {
       console.error("Debug panel elements not found");
@@ -1618,16 +1670,14 @@ function updateDebugPanel() {
       "Video Planes",
       "Video Tunnel",
       "Video Ribbon",
-      "Video Cubes", // Re-enabled - user wants the squares effect
-      // "Video Mosaic", // Removed - was causing issues
+      "Video Cubes",
       "Video Wave",
       "Video Sphere",
       "Video Mirror Room",
-      // "Video Particle Swarm", // Removed - user didn't like it
     ];
     currentEffectDiv.innerHTML = `Effect: ${effectNames[currentEffect]}`;
 
-    // Update persistence effect status - use the global state
+    // Update persistence effect status
     if (ghostStatusDiv) {
       ghostStatusDiv.innerHTML = `Trail recording: ${
         window.persistenceEnabled ? "ON" : "OFF"
@@ -1642,6 +1692,37 @@ function updateDebugPanel() {
       Hand Rotation: ${Math.round((handRotation / TWO_PI) * 360)}°<br>
       Rotation Speed: ${Math.abs(rotationSpeed).toFixed(2)}
     `;
+
+    // Update background effects info
+    if (bgEffectsDiv) {
+      const bgEffectNames = ["Waves", "Spiral", "Grid", "Noise", "Plasma"];
+      const mode =
+        window.selectedBackgroundMode !== undefined
+          ? window.selectedBackgroundMode
+          : 0;
+      const modeName = mode === 0 ? "SHADER" : mode === 1 ? "EFFECTS" : "VIDEO";
+
+      bgEffectsDiv.innerHTML = `
+        Background Effects: <span style="color: ${
+          bgEffectEnabled ? "#00ff00" : "#ff0000"
+        }">${bgEffectEnabled ? "ON" : "OFF"}</span><br>
+        Current Effect: ${bgEffectNames[bgEffectType]}<br>
+        Intensity: ${Math.round(bgEffectIntensity * 100)}%<br>
+        Mode: ${modeName}<br>
+        Controls:<br>
+        - Press \\ to toggle effects<br>
+        - Keys 1-5 to change effect<br>
+        - [ ] to adjust intensity
+      `;
+
+      // Log the current state to console for debugging
+      console.log("Background Effects State:", {
+        enabled: bgEffectEnabled,
+        type: bgEffectNames[bgEffectType],
+        intensity: bgEffectIntensity,
+        mode: modeName,
+      });
+    }
   } catch (err) {
     console.error("Error updating debug panel:", err);
   }
@@ -1677,18 +1758,10 @@ function keyPressed() {
         "Liquid RGB",
         "Fractal Noise",
       ];
-      const notification = createDiv(`Shader: ${shaderNames[currentShader]}`);
-      notification.position(width / 2 - 100, 50);
-      notification.style("background-color", "rgba(0,0,0,0.7)");
-      notification.style("color", "white");
-      notification.style("padding", "10px 20px");
-      notification.style("border-radius", "5px");
-      notification.style("font-size", "16px");
-      notification.style("z-index", "2000");
-      notification.style("text-align", "center");
-      setTimeout(() => {
-        notification.remove();
-      }, 2000);
+      showNotification(
+        `Shader: ${shaderNames[currentShader]}`,
+        color(0, 255, 255)
+      );
       return;
     }
 
@@ -1722,35 +1795,42 @@ function keyPressed() {
       "Neural Flow",
     ];
 
-    console.log("Effect changed to:", effectNames[currentEffect]);
-
-    // Log the trail recording state after changing effect
-    console.log(
-      "Trail recording state after change:",
-      window.persistenceEnabled ? "ON" : "OFF"
+    showNotification(
+      `Effect: ${effectNames[currentEffect]}`,
+      color(0, 255, 255)
     );
-
-    // Visual feedback for effect change
-    const notification = createDiv(`Effect: ${effectNames[currentEffect]}`);
-    notification.position(width / 2 - 100, 50);
-    notification.style("background-color", "rgba(0,0,0,0.7)");
-    notification.style("color", "white");
-    notification.style("padding", "10px 20px");
-    notification.style("border-radius", "5px");
-    notification.style("font-size", "16px");
-    notification.style("z-index", "2000");
-    notification.style("text-align", "center");
-
-    // Remove after 2 seconds
-    setTimeout(() => {
-      notification.remove();
-    }, 2000);
-
-    // IMPORTANT: We don't change the trail recording state when changing effects
-    // The persistence state is controlled solely by the toggle button
   } else if (key === "r" || key === "R") {
     // Toggle recording with 'r' key
     toggleRecording();
+  } else if (key === "\\") {
+    // Toggle background effect
+    bgEffectEnabled = !bgEffectEnabled;
+    showNotification(
+      `Background Effect: ${bgEffectEnabled ? "ON" : "OFF"}`,
+      color(0, 255, 255)
+    );
+  } else if (key === "[") {
+    // Decrease background effect intensity
+    bgEffectIntensity = max(0.1, bgEffectIntensity - 0.1);
+    showNotification(
+      `Background Intensity: ${Math.round(bgEffectIntensity * 100)}%`,
+      color(0, 255, 255)
+    );
+  } else if (key === "]") {
+    // Increase background effect intensity
+    bgEffectIntensity = min(1.0, bgEffectIntensity + 0.1);
+    showNotification(
+      `Background Intensity: ${Math.round(bgEffectIntensity * 100)}%`,
+      color(0, 255, 255)
+    );
+  } else if (key >= "1" && key <= "5") {
+    // Change background effect type
+    bgEffectType = parseInt(key) - 1;
+    const effectNames = ["Waves", "Spiral", "Grid", "Noise", "Plasma"];
+    showNotification(
+      `Background Effect: ${effectNames[bgEffectType]}`,
+      color(0, 255, 255)
+    );
   }
 }
 
@@ -1965,9 +2045,12 @@ function saveVideo() {
   }, 100);
 }
 
-// Add a new function to clear the persistence canvas
+// Update the clearPersistenceCanvas function
 function clearPersistenceCanvas() {
+  // Clear the persistence canvas
+  persistCanvas.clear();
   persistCanvas.background(0);
+  hasTrails = false;
 }
 
 // Make the function globally available
@@ -3966,4 +4049,122 @@ function drawVideoOverlay() {
 
   // Re-enter the 3D transformation context for any overlay effects
   push();
+}
+
+function drawPsychedelicBackground() {
+  push();
+  // Reset matrix to draw in screen space
+  resetMatrix();
+  translate(-width / 2, -height / 2);
+
+  // Common parameters
+  let time = frameCount * 0.02;
+  let intensity = bgEffectIntensity * 1.5;
+
+  // Calculate grid sizes based on screen size and performance
+  const gridStep = Math.max(15, Math.floor(width / 100)); // Adaptive grid size
+  const smallGridStep = Math.max(8, Math.floor(width / 150));
+
+  switch (bgEffectType) {
+    case BG_EFFECTS.WAVES:
+      // Optimized wave pattern
+      colorMode(HSB);
+      for (let y = 0; y < height; y += gridStep * 2) {
+        let col = color((y + frameCount) % 255, 255, 255, 255 * intensity);
+        stroke(col);
+        strokeWeight(4);
+        noFill();
+        beginShape();
+        for (let x = 0; x < width; x += smallGridStep * 2) {
+          let yOffset = sin((x * 0.02 + time) * intensity) * 100 * intensity;
+          vertex(x, y + yOffset);
+        }
+        endShape();
+      }
+      break;
+
+    case BG_EFFECTS.SPIRAL:
+      // Optimized spiral pattern
+      colorMode(HSB);
+      translate(width / 2, height / 2);
+      const spiralCount = Math.floor(100 * intensity); // Adaptive spiral count
+      for (let i = 0; i < spiralCount; i += 2) {
+        let angle = i * 0.15 + time;
+        let radius = i * 6 * intensity;
+        let x = cos(angle) * radius;
+        let y = sin(angle) * radius;
+        let size = 35 * intensity;
+        let col = color((i * 2 + frameCount) % 255, 255, 255, 255 * intensity);
+        fill(col);
+        noStroke();
+        ellipse(x, y, size, size);
+      }
+      break;
+
+    case BG_EFFECTS.GRID:
+      // Optimized grid pattern - reduced density and simplified pattern
+      colorMode(HSB);
+      strokeWeight(3);
+      for (let x = 0; x < width; x += gridStep * 3) {
+        for (let y = 0; y < height; y += gridStep * 3) {
+          let d = dist(x, y, width / 2, height / 2);
+          let offset = sin(d * 0.005 + time) * 40 * intensity;
+          let col = color(
+            (d + frameCount * 0.5) % 255,
+            255,
+            255,
+            255 * intensity
+          );
+          stroke(col);
+          line(x + offset, y, x - offset, y + gridStep * 2);
+        }
+      }
+      break;
+
+    case BG_EFFECTS.NOISE:
+      // Optimized noise pattern - using larger cells
+      colorMode(HSB);
+      noStroke();
+      let noiseScale = 0.01 * intensity;
+      rectMode(CENTER);
+      for (let x = 0; x < width; x += gridStep * 2) {
+        for (let y = 0; y < height; y += gridStep * 2) {
+          let noiseVal = noise(x * noiseScale, y * noiseScale, time * 0.5);
+          let col = color(
+            (noiseVal * 255 + frameCount * 0.5) % 255,
+            255,
+            255,
+            255 * intensity
+          );
+          fill(col);
+          rect(x, y, gridStep * 2, gridStep * 2);
+        }
+      }
+      break;
+
+    case BG_EFFECTS.PLASMA:
+      // Optimized plasma effect - simplified calculations
+      colorMode(HSB);
+      noStroke();
+      let plasmaScale = 0.02 * intensity;
+      rectMode(CENTER);
+      for (let x = 0; x < width; x += gridStep * 2) {
+        for (let y = 0; y < height; y += gridStep * 2) {
+          let v1 = sin(x * plasmaScale * 0.5 + time);
+          let v2 = sin(y * plasmaScale * 0.5 + time);
+          let v = (v1 + v2) * 0.5;
+          let col = color(
+            (v * 127 + 128 + frameCount * 0.5) % 255,
+            255,
+            255,
+            255 * intensity
+          );
+          fill(col);
+          rect(x, y, gridStep * 2, gridStep * 2);
+        }
+      }
+      break;
+  }
+  colorMode(RGB);
+  pop();
 }
