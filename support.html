@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support - RANDOM RAINBOW LAB</title>
+    <script async src="https://js.stripe.com/v3/buy-button.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'VT323', monospace;
+            background-color: #000;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.1;
+            z-index: 1;
+            background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAAAXNSR0IArs4c6QAABBlJREFUaEPtmttx2zAQRQ+UiSpQKlAqsDtQOpA7iDqIO5A7sCuwO7A6sDuwOzDzQBnKA8kbkuAuHhLpiV8yM5wR+Vi7F7vALgCt4rjH6Wv0/iFG3+sNr9W9WpXv+h2Jyx5RA+AMwNnw2QAYRoBFASRuDxtpb3KNwQ7rHsA+iRsqUBSQxO3Fz4bfANweKBQFJHG7K2JgBChrZ3fX/QxAIqo0ECgnC8BxJsX6m6vFz1RAEreX9jUAdtK9KSBxDBD+V8Ach5NlKiBxfNdlqvNnF4hbAFfAmfOTSLr5dxLHmXkA8FtpjYJ8g8TtojYuBpqUk9ZQtLuLY7L1G8CTD0ziJgZ/AXAjQbh63yGiIPo4cTx7fxDKlZhOYtZ4HgOSuJWOLVV3OvuxQDwnbrmxEwYAzJtOwXoAlNkVxiTuz7BQZKRqAY0CkrgdCG1QKDA2kMQ9wf0o8jKzB0B6XdWwgSTutQ/lQEcDSdxuIPLTD2c0CBiMThpWzZsaxPQgEUyMURE+jQaSuBfY0Wo9p6XdaCC12Y8HIJYnvdWrDUjidjv7XLiWIyplA4QTJ3LG7M/RLtTRQBJ3Ypa5TgcykVsLIKl7JVXNZwOR0tsdEwLpuYwKDTIaiJZqsxvHJyCSABqo6cZodgGM2yBT09N4HlZDN1fxj1ZkEkYcELNDxTZH3iBtR4kEYpmtPveFgHRlr35PVwN01a9fZsUCYc2R+2YVXBkbqm1mqjZxqvbVrSVgaTv35kM2SGFGLx88Ey7/6MgNvWsNNrq2lVU8Q4BQNr4B4G8V2vAIcNGcEEvmxHkGsYLEMDuaOr1t+WjzZNIauS6tjQPCQtKX2OYC3wPAexIXVpMYoWmCWORmBkF4dq77rlXWGhQ9GQcLHJDsO/oGDK3GAlKxJFJfDdJVbYG05k1KqU2Q2gvECqRntVrVqaVaEJKJ+TRCNpCu6rlAOu+PAaJeHxNIZ9qcqr0YsXcNXRvnmcP7RvVZYQ0I68RWEK25uiJVA7BoZHAQPiMEiE9zJXTzEsQXQ/8mf+eDTNUg+IyuyFa1l/ZUy3HdKqXmrZbVtCbdajCGVmVdFNvVF0SsJ88+IBGtfZArJC1aawGJClK0rjQT85JOLYiuAXA2rSUFsS6+Yf0PgLR+kRKEX6XsVsuqTrlBuKetdNL2QZ5qCwxSkHfVWm6QxpxybLfmtjXNYrF97EawtNYcoFcWxGeX16jRArLLvjJJbZzpWK0LCmJZX3T6WEDMKxQlCJsRMkVoZZGnGrFGgwTxubaO9xFkCu8Dxrw8+2bHi9mj2y3hfsD6ZsEKksbR5xNdvgXJORjZ5dJV7YFsHUXHl68lCHk2m87l2QXi7cQnDqL9BXE2LofoVXeKAAAAAElFTkSuQmCC");
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .glitch-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            text-shadow: 
+                2px 2px 0 #ff00ff,
+                -2px -2px 0 #00ffff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .support-section {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ffff;
+            box-shadow: 
+                0 0 10px rgba(0, 255, 255, 0.3),
+                inset 0 0 20px rgba(0, 255, 255, 0.2);
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .support-text {
+            font-size: 1.2rem;
+            color: #e0e0e0;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .nav-button {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: #000;
+            font-size: 1.2rem;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .nav-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.7);
+        }
+
+        .nav-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        stripe-buy-button {
+            display: block;
+            margin: 30px auto;
+            max-width: 400px;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="noise"></div>
+    
+    <div class="container">
+        <div class="nav-container">
+            <a href="index.html" class="nav-button">← Back to Home</a>
+        </div>
+
+        <div class="glitch-container">
+            <h1>Support the Lab</h1>
+        </div>
+
+        <div class="support-section">
+            <p class="support-text">
+                Random Rainbow Lab is part of <a href="https://cutethingsonline.com" target="_blank" style="color: #ff00ff; text-decoration: none; border-bottom: 1px dashed #ff00ff;">Cute Things Online</a>, where we create experimental digital art and interactive experiences. Your support helps us continue developing new features, exploring creative possibilities, and maintaining our infrastructure.
+            </p>
+            <p class="support-text">
+                Visit <a href="https://cutethingsonline.com" target="_blank" style="color: #ff00ff; text-decoration: none; border-bottom: 1px dashed #ff00ff;">cutethingsonline.com</a> to discover our other cyberdelic projects and digital experiments! 🎨✨
+            </p>
+            <p class="support-text">
+                By supporting us, you're helping to keep the digital rainbow glowing and enabling more artists to experiment with new forms of expression. 🌈✨
+            </p>
+            
+            <stripe-buy-button
+                buy-button-id="buy_btn_1PwQaD09kQaCl5xpu4ZIwHKA"
+                publishable-key="pk_live_51PwO6M09kQaCl5xpiYwXWc1lE6JSVV8H6a08o0HtO27vHyCP4IKSjxIHAs6HfsW90hdfBB7vMBzpWTO4AXmm6gOP003CShheae"
+            ></stripe-buy-button>
+        </div>
+    </div>
+
+    <script>
+        // Add some cyberdelic effects
+        function createRandomGlitch() {
+            setTimeout(() => {
+                const h1 = document.querySelector('h1');
+                if (Math.random() > 0.9) {
+                    h1.style.animation = 'glitch 0.2s ease';
+                    setTimeout(() => {
+                        h1.style.animation = 'none';
+                    }, 200);
+                }
+                createRandomGlitch();
+            }, Math.random() * 3000 + 1000);
+        }
+        
+        createRandomGlitch();
+    </script>
+</body>
+</html> 
