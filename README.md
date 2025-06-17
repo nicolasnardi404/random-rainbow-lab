@@ -1,86 +1,142 @@
-# Hands As Videos Controller
+<div align="center">
 
-An interactive web application that uses hand tracking technology to control visual effects in real-time. Create stunning visuals by simply moving your hands in front of your webcam.
+# 🌈 Random Rainbow Lab 🦄
 
-## Features
+<p>
+  <img src="https://img.shields.io/badge/p5.js-Creative%20Coding-ff00ff?style=for-the-badge&logo=p5.js" alt="p5.js">
+  <img src="https://img.shields.io/badge/MediaPipe-Hand%20Tracking-00ffff?style=for-the-badge&logo=google" alt="MediaPipe">
+</p>
 
-- Real-time hand tracking using MediaPipe
-- 8 different visual effects to choose from
-- Intuitive gesture controls for manipulating effects
-- HD video recording capability
-- Works directly in your browser with no additional hardware
+<p>A cyberdelic experiment from Random Rainbow, transforming hand movements into mesmerizing visual effects.</p>
+</div>
 
-## Demo
+---
 
-Visit the landing page to get started, then click "Launch Experience" to enter the main application.
+## ✨ Features
 
-## Requirements
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">👋</td>
+      <td><strong>Hand Tracking</strong><br/>Real-time gesture recognition</td>
+      <td align="center">🎨</td>
+      <td><strong>Visual Effects</strong><br/>Multiple psychedelic generators</td>
+    </tr>
+    <tr>
+      <td align="center">🎥</td>
+      <td><strong>Video Processing</strong><br/>Live video manipulation</td>
+      <td align="center">📼</td>
+      <td><strong>Recording</strong><br/>Save your creations</td>
+    </tr>
+    <tr>
+      <td align="center">🌐</td>
+      <td><strong>WebGL Shaders</strong><br/>GPU-accelerated effects</td>
+      <td align="center">🔌</td>
+      <td><strong>Modular Design</strong><br/>Easy to extend</td>
+    </tr>
+  </table>
+</div>
 
+---
+
+## 🛠️ Technical Stack
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">🎨</td>
+      <td><strong>Graphics</strong><br/>p5.js & WebGL</td>
+      <td align="center">👋</td>
+      <td><strong>Tracking</strong><br/>MediaPipe Hands</td>
+    </tr>
+    <tr>
+      <td align="center">🎥</td>
+      <td><strong>Capture</strong><br/>WebRTC & Canvas</td>
+      <td align="center">🎛️</td>
+      <td><strong>Effects</strong><br/>Custom GLSL Shaders</td>
+    </tr>
+  </table>
+</div>
+
+---
+
+## 🎯 Core Components
+
+- **Hand Tracking**: Precise gesture detection and tracking
+- **Effect Generators**: Multiple visual styles and effects
+- **Video Processing**: Real-time video manipulation
+- **Recording System**: High-quality video capture
+
+---
+
+## 🚀 Getting Started
+
+### Quick Start
+Simply download the project and drag `index.html` into your browser to start experimenting!
+
+### Requirements
 - A modern web browser (Chrome, Firefox, or Edge recommended)
 - A webcam
-- Node.js and npm installed
+- That's it! No installation or server needed
 
-## Installation
+### Running Locally
+1. Download or clone the repository
+2. Open `index.html` in your browser
+   - Drag and drop the file into your browser window, or
+   - Double-click the file to open it
+3. Grant camera access when prompted
+4. Start creating with your hands! 🙌
 
-1. Clone this repository or download the source code
-2. Open a terminal in the project directory
-3. Install dependencies:
-
-```bash
-npm install
+### Project Structure
+```
+hands-as-videos-controller/
+├── index.html          # Landing page
+├── app.html           # Main application
+├── sketch.js         # Core hand tracking & effects
+├── video-distortion.js    # Video effects
+└── assets/          # Images and resources
 ```
 
-## Running the Application
+---
 
-### Development Mode
+## 🎮 Controls
 
-To run the application in development mode with automatic browser opening:
+- **Space**: Cycle through effects
+- **D**: Toggle debug mode
+- **R**: Toggle recording
+- **T**: Toggle trails
+- **C**: Clear trails
+- **V**: Toggle video background
+- **\\**: Toggle background effects
+- **[ ]**: Adjust effect intensity
+- **1-5**: Change background style
 
-```bash
-npm run dev
-```
+---
 
-This will start a local server and automatically open the landing page in your browser.
+## 🤝 Contributing
 
-### Production Mode
+We welcome contributions! Here's how you can help:
 
-To run the application in production mode:
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
-```bash
-npm start
-```
+Please ensure your PR description clearly describes the problem and solution.
 
-Then visit `http://localhost:3000` in your browser.
-The main application is available at `http://localhost:3000/app`
+---
 
-## Usage
+## 📜 License
 
-1. Grant camera access when prompted
-2. Position your hands in front of the camera
-3. Use the following controls:
+This project is licensed under the GNU General Public License v2.0 - see the [LICENSE.md](LICENSE.md) file for details.
 
-### Hand Controls
+---
 
-- **Right Hand**: Controls position and size of effects
-  - Move hand to position the effect
-  - Pinch (thumb to index) to control size
+<div align="center">
 
-- **Left Hand**: Controls colors and energy levels
-  - Move left/right to change colors
-  - Movement speed controls energy level
+### 🌈 Part of the [Random Rainbow](https://randomrainbow.art) Project
 
-### Keyboard Controls
+Connecting queer video art through random experiences
 
-- Press **SPACE** to change effects
-- Press **D** to toggle debug info
-- Press **R** to toggle recording
-
-## Technologies Used
-
-- p5.js for rendering and visual effects
-- MediaPipe for hand tracking
-- Express.js for the server
-
-## License
-
-[MIT License](LICENSE) 
+</div> 
