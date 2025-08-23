@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Body Music Controller - Hand Movement Music Creation</title>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <!-- p5.js and p5.sound for music synthesis -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
+    <!-- Background assets -->
+    <script src="assets/backgrounds/shaders.js"></script>
+    <script src="assets/backgrounds/image_info.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #music-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #ff00ff;
+            color: white;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+            max-width: 300px;
+        }
+        
+        #video-controller {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #00ffff;
+            color: white;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            max-width: 300px;
+        }
+        
+        #video-controller h3 {
+            margin: 0 0 15px 0;
+            color: #00ffff;
+            text-align: center;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        #music-controls h3 {
+            margin: 0 0 15px 0;
+            color: #ff00ff;
+            text-align: center;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 0, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 0, 255, 0.3);
+        }
+        
+        .control-group h4 {
+            margin: 0 0 10px 0;
+            color: #00ffff;
+            font-size: 14px;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ffffff;
+            font-size: 12px;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .music-btn {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: black;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 60px;
+        }
+        
+        .music-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+        }
+        
+        .music-btn.active {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        }
+        
+        /* Distortion effect button specific styles */
+        #larsen-effect.active {
+            background: linear-gradient(45deg, #ff00ff, #ff0080);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+        }
+        
+        #glitch-effect.active {
+            background: linear-gradient(45deg, #00ff00, #00ffff);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+        }
+        
+        #wave-effect.active {
+            background: linear-gradient(45deg, #0080ff, #00ffff);
+            box-shadow: 0 0 20px rgba(0, 128, 255, 0.8);
+        }
+        
+        /* Filter button active states */
+        #invert-filter.active {
+            background: linear-gradient(45deg, #800080, #ff00ff);
+            box-shadow: 0 0 20px rgba(128, 0, 128, 0.8);
+        }
+        
+        #grayscale-filter.active {
+            background: linear-gradient(45deg, #666666, #999999);
+            box-shadow: 0 0 20px rgba(102, 102, 102, 0.8);
+        }
+        
+        #sepia-filter.active {
+            background: linear-gradient(45deg, #8B4513, #D2691E);
+            box-shadow: 0 0 20px rgba(139, 69, 19, 0.8);
+        }
+        
+        #blur-filter.active {
+            background: linear-gradient(45deg, #4B0082, #8A2BE2);
+            box-shadow: 0 0 20px rgba(75, 0, 130, 0.8);
+        }
+        
+        /* Camera option button active states */
+        #flip-camera.active,
+        #freeze-frame.active {
+            background: linear-gradient(45deg, #FF4500, #FF6347);
+            box-shadow: 0 0 20px rgba(255, 69, 0, 0.8);
+        }
+        
+        .scale-selector {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 1px solid #ff00ff;
+            border-radius: 5px;
+            padding: 8px;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        #video-container {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            width: 240px;
+            height: 180px;
+            border-radius: 12px;
+            z-index: 1000;
+            border: 3px solid #ff00ff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.6);
+            overflow: hidden;
+            background: #000;
+        }
+        
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        #hand-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1001;
+        }
+        
+        #video-toggle {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            padding: 4px 8px;
+            z-index: 1002;
+            cursor: pointer;
+        }
+        
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 350px;
+            z-index: 1000;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        #instructions.collapsed {
+            max-width: 60px;
+            max-height: 60px;
+            overflow: hidden;
+            padding: 10px;
+            cursor: pointer;
+        }
+        
+        #instructions.collapsed #toggle-instructions {
+            display: none;
+        }
+        
+        #instructions.collapsed .hand-control {
+            display: none;
+        }
+        
+        #instructions.collapsed h3 {
+            display: none;
+        }
+        
+        #toggle-instructions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ffff;
+            border: 1px solid #00ffff;
+            border-radius: 3px;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            z-index: 1001;
+        }
+        
+        #toggle-instructions:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+        
+        #instructions-icon {
+            display: none;
+            font-size: 12px;
+            color: #00ffff;
+            text-align: center;
+            margin: 0;
+        }
+        
+        #instructions.collapsed #instructions-icon {
+            display: block;
+        }
+        
+        #instructions h3 {
+            margin: 0 0 15px 0;
+            color: #00ffff;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .hand-control {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .hand-control strong {
+            color: #ff00ff;
+        }
+        
+        #visualizer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 500;
+            pointer-events: none;
+        }
+        
+        #home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1500;
+        }
+        
+        #home-button a {
+            color: #00ffff;
+            text-decoration: none;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00ffff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        #home-button a:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+        }
+        
+        .status-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+            z-index: 1000;
+            font-size: 12px;
+            max-width: 200px;
+        }
+        
+        .status-item {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .status-value {
+            color: #00ffff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Video Background Canvas with Distortion Effects -->
+    <canvas id="background-canvas" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none;"></canvas>
+    
+    <div id="music-controls">
+        <h3>🎵 Music Controller</h3>
+        
+        <div class="control-group">
+            <h4>🎹 Scale & Key</h4>
+            <select id="scale-selector" class="scale-selector">
+                <option value="major">C Major</option>
+                <option value="minor">A Minor</option>
+                <option value="pentatonic">C Pentatonic</option>
+                <option value="blues">C Blues</option>
+                <option value="chromatic">Chromatic</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <h4>🎚️ Volume & Effects</h4>
+            <div class="slider-container">
+                <label for="master-volume">Master Volume</label>
+                <input type="range" id="master-volume" class="slider" min="0" max="100" value="70">
+            </div>
+            <div class="slider-container">
+                <label for="reverb-amount">Reverb</label>
+                <input type="range" id="reverb-amount" class="slider" min="0" max="100" value="30">
+            </div>
+            <div class="slider-container">
+                <label for="delay-amount">Delay</label>
+                <input type="range" id="delay-amount" class="slider" min="0" max="100" value="20">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>🎛️ Sound Types</h4>
+            <div class="button-group">
+                <button id="synth-btn" class="music-btn active">Synth</button>
+                <button id="piano-btn" class="music-btn">Piano</button>
+                <button id="bass-btn" class="music-btn">Bass</button>
+                <button id="drums-btn" class="music-btn">Drums</button>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>🎯 Hand Controls</h4>
+            <div class="button-group">
+                <button id="melody-mode" class="music-btn active">Melody</button>
+                <button id="chord-mode" class="music-btn">Chords</button>
+                <button id="rhythm-mode" class="music-btn">Rhythm</button>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>🎼 Recording</h4>
+            <div class="button-group">
+                <button id="record-btn" class="music-btn">⏺ Record</button>
+                <button id="play-btn" class="music-btn">▶️ Play</button>
+                <button id="clear-btn" class="music-btn">🗑️ Clear</button>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>🔊 Audio Test</h4>
+            <div class="button-group">
+                <button id="test-audio-btn" class="music-btn">🔊 Test Sound</button>
+                <button id="test-note-btn" class="music-btn">🎵 Test Note</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Video Controller Panel - Right Side -->
+    <div id="video-controller">
+        <h3>🎥 Video Controls</h3>
+        
+        <div class="control-group">
+            <h4>📹 Camera Settings</h4>
+            <div class="slider-container">
+                <label for="camera-brightness">Brightness</label>
+                <input type="range" id="camera-brightness" class="slider" min="0" max="200" value="100">
+            </div>
+            <div class="slider-container">
+                <label for="camera-contrast">Contrast</label>
+                <input type="range" id="camera-contrast" class="slider" min="0" max="200" value="100">
+            </div>
+            <div class="slider-container">
+                <label for="camera-saturation">Saturation</label>
+                <input type="range" id="camera-saturation" class="slider" min="0" max="200" value="100">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>🌀 Distortion Effects</h4>
+            <div class="slider-container">
+                <label for="distortion-intensity">Intensity</label>
+                <input type="range" id="distortion-intensity" class="slider" min="0" max="100" value="50">
+            </div>
+            <div class="slider-container">
+                <label for="distortion-speed">Speed</label>
+                <input type="range" id="distortion-speed" class="slider" min="0" max="100" value="30">
+            </div>
+            <div class="button-group">
+                <button id="larsen-effect" class="music-btn active">Larsen</button>
+                <button id="glitch-effect" class="music-btn">Glitch</button>
+                <button id="wave-effect" class="music-btn">Wave</button>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>🎨 Visual Filters</h4>
+            <div class="button-group">
+                <button id="invert-filter" class="music-btn">Invert</button>
+                <button id="grayscale-filter" class="music-btn">Grayscale</button>
+                <button id="sepia-filter" class="music-btn">Sepia</button>
+                <button id="blur-filter" class="music-btn">Blur</button>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>⚙️ Camera Options</h4>
+            <div class="button-group">
+                <button id="flip-camera" class="music-btn">Flip Camera</button>
+                <button id="freeze-frame" class="music-btn">Freeze Frame</button>
+                <button id="screenshot" class="music-btn">📸 Screenshot</button>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>🐛 Debug</h4>
+            <div class="button-group">
+                <button id="test-video-draw" class="music-btn">Test Video</button>
+                <button id="test-temp-canvas" class="music-btn">Temp Canvas</button>
+                <button id="video-info" class="music-btn">Video Info</button>
+                <button id="toggle-effects" class="music-btn">Toggle Effects</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="video-container">
+        <video id="video" playsinline autoplay muted></video>
+        <canvas id="hand-canvas"></canvas>
+        <button id="video-toggle">Hide</button>
+    </div>
+    
+    <div id="status-indicator" class="status-indicator">
+        <div class="status-item">
+            <span>Hands:</span>
+            <span id="hands-count" class="status-value">0</span>
+        </div>
+        <div class="status-item">
+            <span>Mode:</span>
+            <span id="current-mode" class="status-value">Melody</span>
+        </div>
+        <div class="status-item">
+            <span>Scale:</span>
+            <span id="current-scale" class="status-value">C Major</span>
+        </div>
+        <div class="status-item">
+            <span>Volume:</span>
+            <span id="current-volume" class="status-value">70%</span>
+        </div>
+        <div class="status-item">
+            <span>Video:</span>
+            <span id="video-status" class="status-value">Loading...</span>
+        </div>
+        <div class="status-item">
+            <span>Canvas:</span>
+            <span id="canvas-status" class="status-value">Initializing...</span>
+        </div>
+    </div>
+    
+    <div id="instructions" class="collapsed">
+        <button id="toggle-instructions">Show</button>
+        <div id="instructions-icon">controls</div>
+        <h3>🎵 Hand Music Controls</h3>
+        <div class="hand-control">
+            <strong>Right Hand:</strong><br>
+            • Move up/down to change pitch<br>
+            • Move left/right to change note length<br>
+            • Pinch (thumb to index) to trigger notes<br>
+            • Rotate wrist to add vibrato
+        </div>
+        <div class="hand-control">
+            <strong>Left Hand:</strong><br>
+            • Move up/down to control volume<br>
+            • Move left/right to change effects<br>
+            • Pinch to add reverb/delay<br>
+            • Open palm to stop sounds
+        </div>
+        <div class="hand-control">
+            <strong>Both Hands:</strong><br>
+            • Clap to trigger drum beats<br>
+            • Wave to create ambient sounds<br>
+            • Point fingers to add harmony notes
+        </div>
+    </div>
+    
+    <div id="home-button">
+        <a href="index.html">🏠 Home</a>
+    </div>
+    
+    <!-- Audio start overlay -->
+    <div id="audio-start-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+        <div style="text-align: center; color: white; padding: 40px;">
+            <h2 style="color: #00ffff; margin-bottom: 20px;">🎵 Hand Music Controller</h2>
+            <p style="margin-bottom: 30px; font-size: 18px;">Click the button below to start the audio and camera</p>
+            <button id="start-audio-btn" style="background: linear-gradient(45deg, #ff00ff, #00ffff); color: black; border: none; border-radius: 10px; padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);">🎵 Start Audio & Camera</button>
+        </div>
+    </div>
+    
+    <script src="body-music.js"></script>
+    
+    <script>
+        // Video Background with Distortion Effects
+        let backgroundCanvas, backgroundCtx;
+        let videoElement;
+        let distortionType = 'larsen';
+        let distortionIntensity = 0.5;
+        let distortionSpeed = 0.3;
+        let time = 0;
+        
+        // Camera settings
+        let cameraBrightness = 100;
+        let cameraContrast = 100;
+        let cameraSaturation = 100;
+        let cameraFlipped = false;
+        let frameFrozen = false;
+        let frozenFrame = null;
+        
+        // Visual filters
+        let activeFilters = {
+            invert: false,
+            grayscale: false,
+            sepia: false,
+            blur: false
+        };
+        
+        // Initialize video background
+        function initVideoBackground() {
+            backgroundCanvas = document.getElementById('background-canvas');
+            backgroundCtx = backgroundCanvas.getContext('2d');
+            
+            // Force canvas to be visible
+            backgroundCanvas.style.display = 'block';
+            backgroundCanvas.style.visibility = 'visible';
+            backgroundCanvas.style.opacity = '1';
+            backgroundCanvas.style.zIndex = '1';
+            backgroundCanvas.style.border = '5px solid red'; // Thicker border to see canvas
+            backgroundCanvas.style.backgroundColor = '#000000'; // Black background
+            
+            // Update canvas status
+            updateStatus('canvas-status', 'Initialized');
+            
+            // Set canvas size to window size
+            backgroundCanvas.width = window.innerWidth;
+            backgroundCanvas.height = window.innerHeight;
+            
+            // Test canvas immediately
+            const testCtx = backgroundCtx;
+            testCtx.fillStyle = '#00ff00';
+            testCtx.fillRect(0, 0, 100, 100);
+            testCtx.fillStyle = '#000000';
+            testCtx.font = '20px Arial';
+            testCtx.fillText('CANVAS WORKING!', 10, 60);
+            
+            // Create video element for webcam
+            videoElement = document.createElement('video');
+            videoElement.autoplay = true;
+            videoElement.muted = true;
+            videoElement.playsInline = true;
+            videoElement.style.display = 'none'; // Hide the video element
+            
+            // Update video status
+            updateStatus('video-status', 'Requesting camera...');
+            
+            // Get webcam stream
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    facingMode: 'user'
+                } 
+            })
+            .then(stream => {
+                videoElement.srcObject = stream;
+                updateStatus('video-status', 'Stream received');
+                
+                videoElement.addEventListener('loadedmetadata', () => {
+                    updateStatus('video-status', `Loaded: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                    startBackgroundAnimation();
+                });
+                videoElement.addEventListener('play', () => {
+                    updateStatus('video-status', 'Playing');
+                });
+                videoElement.addEventListener('error', (e) => {
+                    console.error('Video error:', e);
+                    updateStatus('video-status', 'Error: ' + e.message);
+                });
+            })
+            .catch(err => {
+                console.error('Error accessing webcam:', err);
+                updateStatus('video-status', 'Camera denied: ' + err.message);
+                // Fallback to a colored background
+                startBackgroundAnimation();
+            });
+        }
+        
+        // Update status indicator
+        function updateStatus(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+            }
+        }
+        
+        // Test canvas functionality
+        function testCanvas() {
+            const ctx = backgroundCtx;
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+            
+            // Clear and draw a simple test pattern
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw a bright red background
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw some test shapes
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(width/2 - 50, height/2 - 50, 100, 100);
+            
+            ctx.fillStyle = '#0000ff';
+            ctx.beginPath();
+            ctx.arc(width/2, height/2, 75, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Start background animation loop
+        function startBackgroundAnimation() {
+            function animate() {
+                if (videoElement && videoElement.videoWidth > 0 && videoElement.readyState >= 2) {
+                    // Check if we're in direct video mode
+                    const toggleBtn = document.getElementById('toggle-effects');
+                    const isDirectMode = toggleBtn && toggleBtn.getAttribute('data-mode') === 'direct';
+                    
+                    if (isDirectMode) {
+                        // Draw video directly without effects
+                        drawVideoDirectly();
+                    } else {
+                        // First, try to draw the video directly to test
+                        if (time < 0.1) { // First few frames
+                            drawVideoDirectly();
+                        } else {
+                            applyDistortionEffect();
+                        }
+                    }
+                } else {
+                    // Draw a fallback background if video isn't ready
+                    drawFallbackBackground();
+                }
+                time += distortionSpeed * 0.01;
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+        
+        // Draw video directly without effects (for testing)
+        function drawVideoDirectly() {
+            const ctx = backgroundCtx;
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Check if video is ready
+            if (!videoElement || videoElement.readyState < 2) {
+                return;
+            }
+            
+            try {
+                // Draw video directly - simple approach
+                ctx.drawImage(videoElement, 0, 0, width, height);
+                
+                // Add a visible indicator that video was drawn
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(10, 10, 200, 100);
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '20px Arial';
+                ctx.fillText('VIDEO DRAWN!', 20, 50);
+                
+            } catch (e) {
+                console.error('Error drawing video directly:', e);
+                // Draw error background
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '24px Arial';
+                ctx.fillText('VIDEO ERROR!', width/2 - 100, height/2);
+            }
+        }
+        
+        // Alternative video drawing method using temp canvas
+        function drawVideoWithTempCanvas() {
+            const ctx = backgroundCtx;
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw green background to test
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(0, 0, width, height);
+            
+            if (!videoElement || videoElement.readyState < 2) {
+                return;
+            }
+            
+            try {
+                // Create a temporary canvas
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = videoElement.videoWidth;
+                tempCanvas.height = videoElement.videoHeight;
+                
+                // Draw video to temp canvas first
+                tempCtx.drawImage(videoElement, 0, 0);
+                
+                // Then draw temp canvas to main canvas
+                ctx.drawImage(tempCanvas, 0, 0, width, height);
+                
+                console.log('Video drawn using temp canvas method');
+                
+            } catch (e) {
+                console.error('Error with temp canvas method:', e);
+            }
+        }
+        
+        // Draw fallback background
+        function drawFallbackBackground() {
+            const ctx = backgroundCtx;
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+            
+            // Create a gradient background
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, '#000033');
+            gradient.addColorStop(0.5, '#330066');
+            gradient.addColorStop(1, '#660099');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Add some animated elements
+            ctx.fillStyle = `rgba(255, 0, 255, ${0.3 + 0.2 * Math.sin(time)})`;
+            ctx.beginPath();
+            ctx.arc(width * 0.5 + Math.sin(time) * 100, height * 0.5 + Math.cos(time) * 100, 50, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Apply distortion effects
+        function applyDistortionEffect() {
+            const canvas = backgroundCanvas;
+            const ctx = backgroundCtx;
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            if (videoElement && videoElement.videoWidth > 0 && videoElement.readyState >= 2) {
+                // Apply camera settings and filters
+                applyCameraSettings(ctx);
+                
+                // Draw the base video first (without distortion)
+                try {
+                    ctx.drawImage(videoElement, 0, 0, width, height);
+                } catch (e) {
+                    console.error('Error drawing video:', e);
+                    drawFallbackBackground();
+                    return;
+                }
+                
+                // Apply distortion effects on top
+                switch (distortionType) {
+                    case 'larsen':
+                        applyLarsenEffect(ctx, width, height);
+                        break;
+                    case 'glitch':
+                        applyGlitchEffect(ctx, width, height);
+                        break;
+                    case 'wave':
+                        applyWaveEffect(ctx, width, height);
+                        break;
+                }
+                
+                // Apply visual filters
+                applyVisualFilters(ctx);
+            } else {
+                drawFallbackBackground();
+            }
+        }
+        
+        // Apply camera settings
+        function applyCameraSettings(ctx) {
+            ctx.filter = `brightness(${cameraBrightness}%) contrast(${cameraContrast}%) saturate(${cameraSaturation}%)`;
+        }
+        
+        // Apply visual filters
+        function applyVisualFilters(ctx) {
+            let filterString = '';
+            
+            if (activeFilters.invert) filterString += 'invert(1) ';
+            if (activeFilters.grayscale) filterString += 'grayscale(1) ';
+            if (activeFilters.sepia) filterString += 'sepia(1) ';
+            if (activeFilters.blur) filterString += 'blur(2px) ';
+            
+            if (filterString) {
+                ctx.filter = filterString;
+            }
+        }
+        
+        // Larsen Effect (feedback loop with offset)
+        function applyLarsenEffect(ctx, width, height) {
+            const intensity = distortionIntensity * 0.1;
+            const offsetX = Math.sin(time) * intensity * 50;
+            const offsetY = Math.cos(time * 0.7) * intensity * 30;
+            
+            // Create a temporary canvas for the effect
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            
+            // Draw the current video frame to temp canvas
+            if (frameFrozen && frozenFrame) {
+                tempCtx.drawImage(frozenFrame, 0, 0, width, height);
+            } else {
+                tempCtx.drawImage(videoElement, 0, 0, width, height);
+            }
+            
+            // Draw with offset
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.drawImage(tempCanvas, 0, 0);
+            
+            // Add feedback layer with transparency
+            ctx.globalAlpha = intensity * 0.3;
+            ctx.translate(-offsetX * 0.5, -offsetY * 0.5);
+            ctx.drawImage(tempCanvas, 0, 0);
+            ctx.restore();
+        }
+        
+        // Glitch Effect (random slices and color shifts)
+        function applyGlitchEffect(ctx, width, height) {
+            const intensity = distortionIntensity * 0.01;
+            const sliceHeight = 10;
+            const slices = Math.floor(height / sliceHeight);
+            
+            // Create a temporary canvas for the effect
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            
+            // Draw the current video frame to temp canvas
+            if (frameFrozen && frozenFrame) {
+                tempCtx.drawImage(frozenFrame, 0, 0, width, height);
+            } else {
+                tempCtx.drawImage(videoElement, 0, 0, width, height);
+            }
+            
+            for (let i = 0; i < slices; i++) {
+                const y = i * sliceHeight;
+                const sliceOffset = Math.random() * intensity * 100 - intensity * 50;
+                const sliceWidth = width + Math.random() * intensity * 100;
+                
+                ctx.save();
+                ctx.translate(sliceOffset, y);
+                
+                // Random color channel shift
+                if (Math.random() < intensity) {
+                    ctx.filter = `hue-rotate(${Math.random() * 360}deg)`;
+                }
+                
+                ctx.drawImage(tempCanvas, 0, y, width, sliceHeight, 0, 0, sliceWidth, sliceHeight);
+                ctx.restore();
+            }
+        }
+        
+        // Wave Effect (sine wave distortion)
+        function applyWaveEffect(ctx, width, height) {
+            const intensity = distortionIntensity * 0.02;
+            const waveHeight = intensity * 100;
+            const waveSpeed = distortionSpeed * 0.1;
+            
+            // Create a temporary canvas for the effect
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            
+            // Draw the current video frame to temp canvas
+            if (frameFrozen && frozenFrame) {
+                tempCtx.drawImage(frozenFrame, 0, 0, width, height);
+            } else {
+                tempCtx.drawImage(videoElement, 0, 0, width, height);
+            }
+            
+            ctx.save();
+            
+            // Create wave distortion
+            for (let x = 0; x < width; x += 2) {
+                const waveOffset = Math.sin(x * 0.01 + time * waveSpeed) * waveHeight;
+                const sliceWidth = 2;
+                
+                ctx.drawImage(
+                    tempCanvas,
+                    x, 0, sliceWidth, height,
+                    x, waveOffset, sliceWidth, height
+                );
+            }
+            
+            ctx.restore();
+        }
+        
+        // Event listeners for distortion controls
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize video background
+            initVideoBackground();
+            
+            // Camera settings sliders
+            const brightnessSlider = document.getElementById('camera-brightness');
+            if (brightnessSlider) {
+                brightnessSlider.addEventListener('input', function() {
+                    cameraBrightness = this.value;
+                });
+            }
+            
+            const contrastSlider = document.getElementById('camera-contrast');
+            if (contrastSlider) {
+                contrastSlider.addEventListener('input', function() {
+                    cameraContrast = this.value;
+                });
+            }
+            
+            const saturationSlider = document.getElementById('camera-saturation');
+            if (saturationSlider) {
+                saturationSlider.addEventListener('input', function() {
+                    cameraSaturation = this.value;
+                });
+            }
+            
+            // Distortion intensity slider
+            const intensitySlider = document.getElementById('distortion-intensity');
+            if (intensitySlider) {
+                intensitySlider.addEventListener('input', function() {
+                    distortionIntensity = this.value / 100;
+                });
+            }
+            
+            // Distortion speed slider
+            const speedSlider = document.getElementById('distortion-speed');
+            if (speedSlider) {
+                speedSlider.addEventListener('input', function() {
+                    distortionSpeed = this.value / 100;
+                });
+            }
+            
+            // Distortion effect buttons
+            const effectButtons = document.querySelectorAll('#larsen-effect, #glitch-effect, #wave-effect');
+            effectButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    effectButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    // Set distortion type
+                    distortionType = this.id.replace('-effect', '');
+                });
+            });
+            
+            // Visual filter buttons
+            const filterButtons = document.querySelectorAll('#invert-filter, #grayscale-filter, #sepia-filter, #blur-filter');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const filterType = this.id.replace('-filter', '');
+                    activeFilters[filterType] = !activeFilters[filterType];
+                    this.classList.toggle('active');
+                });
+            });
+            
+            // Camera option buttons
+            const flipCameraBtn = document.getElementById('flip-camera');
+            if (flipCameraBtn) {
+                flipCameraBtn.addEventListener('click', function() {
+                    cameraFlipped = !cameraFlipped;
+                    this.classList.toggle('active');
+                    if (backgroundCanvas) {
+                        backgroundCanvas.style.transform = cameraFlipped ? 'scaleX(-1)' : 'scaleX(1)';
+                    }
+                });
+            }
+            
+            const freezeFrameBtn = document.getElementById('freeze-frame');
+            if (freezeFrameBtn) {
+                freezeFrameBtn.addEventListener('click', function() {
+                    frameFrozen = !frameFrozen;
+                    this.classList.toggle('active');
+                    if (frameFrozen && videoElement && videoElement.videoWidth > 0) {
+                        // Create a canvas to capture the current frame
+                        const tempCanvas = document.createElement('canvas');
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCanvas.width = videoElement.videoWidth;
+                        tempCanvas.height = videoElement.videoHeight;
+                        tempCtx.drawImage(videoElement, 0, 0);
+                        frozenFrame = tempCanvas;
+                    } else {
+                        frozenFrame = null;
+                    }
+                });
+            }
+            
+            const screenshotBtn = document.getElementById('screenshot');
+            if (screenshotBtn) {
+                screenshotBtn.addEventListener('click', function() {
+                    if (backgroundCanvas) {
+                        const link = document.createElement('a');
+                        link.download = 'screenshot.png';
+                        link.href = backgroundCanvas.toDataURL();
+                        link.click();
+                    }
+                });
+            }
+            
+            // Debug buttons
+            const testVideoBtn = document.getElementById('test-video-draw');
+            if (testVideoBtn) {
+                testVideoBtn.addEventListener('click', function() {
+                    if (videoElement && videoElement.readyState >= 2) {
+                        // Log video properties for debugging
+                        console.log('Video element:', videoElement);
+                        console.log('Video readyState:', videoElement.readyState);
+                        console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                        console.log('Video currentTime:', videoElement.currentTime);
+                        console.log('Video paused:', videoElement.paused);
+                        console.log('Video ended:', videoElement.ended);
+                        
+                        drawVideoDirectly();
+                    } else {
+                        console.log('Video not ready for drawing');
+                    }
+                });
+            }
+
+            const testTempCanvasBtn = document.getElementById('test-temp-canvas');
+            if (testTempCanvasBtn) {
+                testTempCanvasBtn.addEventListener('click', function() {
+                    if (videoElement && videoElement.readyState >= 2) {
+                        drawVideoWithTempCanvas();
+                    } else {
+                        console.log('Video not ready for temp canvas drawing');
+                    }
+                });
+            }
+            
+            const videoInfoBtn = document.getElementById('video-info');
+            if (videoInfoBtn) {
+                videoInfoBtn.addEventListener('click', function() {
+                    if (videoElement && videoElement.readyState >= 2) {
+                        console.log('Video Info:');
+                        console.log('Video readyState:', videoElement.readyState);
+                        console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                        console.log('Video currentTime:', videoElement.currentTime);
+                        console.log('Video paused:', videoElement.paused);
+                        console.log('Video ended:', videoElement.ended);
+                        console.log('Video duration:', videoElement.duration);
+                        console.log('Video playbackRate:', videoElement.playbackRate);
+                        console.log('Video volume:', videoElement.volume);
+                        console.log('Video muted:', videoElement.muted);
+                        console.log('Video error:', videoElement.error);
+                    } else {
+                        console.log('Video not ready for info');
+                    }
+                });
+            }
+            
+            const toggleEffectsBtn = document.getElementById('toggle-effects');
+            if (toggleEffectsBtn) {
+                toggleEffectsBtn.addEventListener('click', function() {
+                    const currentMode = this.getAttribute('data-mode') || 'effects';
+                    if (currentMode === 'effects') {
+                        this.setAttribute('data-mode', 'direct');
+                        this.textContent = 'Direct Video';
+                    } else {
+                        this.setAttribute('data-mode', 'effects');
+                        this.textContent = 'Toggle Effects';
+                    }
+                });
+            }
+            
+            // Audio test button
+            const testAudioBtn = document.getElementById('test-audio-btn');
+            if (testAudioBtn) {
+                testAudioBtn.addEventListener('click', function() {
+                    // Test basic audio
+                    if (window.synth) {
+                        window.synth.freq(261.63); // Middle C
+                        window.synth.start();
+                        setTimeout(() => window.synth.stop(), 200);
+                    }
+                });
+            }
+            
+            // Test note button
+            const testNoteBtn = document.getElementById('test-note-btn');
+            if (testNoteBtn) {
+                testNoteBtn.addEventListener('click', function() {
+                    // Test the playNote function directly
+                    if (window.playNote) {
+                        window.playNote(261.63, 1); // Middle C, 1 second
+                    } else {
+                        console.log('playNote function not available');
+                    }
+                });
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (backgroundCanvas) {
+                    backgroundCanvas.width = window.innerWidth;
+                    backgroundCanvas.height = window.innerHeight;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
