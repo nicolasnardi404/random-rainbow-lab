@@ -176,26 +176,7 @@
             box-shadow: 0 0 20px rgba(0, 128, 255, 0.8);
         }
         
-        /* Filter button active states */
-        #invert-filter.active {
-            background: linear-gradient(45deg, #800080, #ff00ff);
-            box-shadow: 0 0 20px rgba(128, 0, 128, 0.8);
-        }
-        
-        #grayscale-filter.active {
-            background: linear-gradient(45deg, #666666, #999999);
-            box-shadow: 0 0 20px rgba(102, 102, 102, 0.8);
-        }
-        
-        #sepia-filter.active {
-            background: linear-gradient(45deg, #8B4513, #D2691E);
-            box-shadow: 0 0 20px rgba(139, 69, 19, 0.8);
-        }
-        
-        #blur-filter.active {
-            background: linear-gradient(45deg, #4B0082, #8A2BE2);
-            box-shadow: 0 0 20px rgba(75, 0, 130, 0.8);
-        }
+
         
         /* Camera option button active states */
         #flip-camera.active,
@@ -516,15 +497,7 @@
             </div>
         </div>
         
-        <div class="control-group">
-            <h4>🎨 Visual Filters</h4>
-            <div class="button-group">
-                <button id="invert-filter" class="music-btn">Invert</button>
-                <button id="grayscale-filter" class="music-btn">Grayscale</button>
-                <button id="sepia-filter" class="music-btn">Sepia</button>
-                <button id="blur-filter" class="music-btn">Blur</button>
-            </div>
-        </div>
+
         
         <div class="control-group">
             <h4>⚙️ Camera Options</h4>
@@ -625,8 +598,8 @@
         let backgroundCanvas, backgroundCtx;
         let videoElement;
         let distortionType = 'larsen';
-        let distortionIntensity = 0.5;
-        let distortionSpeed = 0.3;
+        let distortionIntensity = 0.8; // Increased default intensity
+        let distortionSpeed = 0.5; // Increased default speed
         let time = 0;
         
         // Camera settings
@@ -637,14 +610,7 @@
         let frameFrozen = false;
         let frozenFrame = null;
         
-        // Visual filters
-        let activeFilters = {
-            invert: false,
-            grayscale: false,
-            sepia: false,
-            blur: false
-        };
-        
+
         // Initialize video background
         function initVideoBackground() {
             console.log('initVideoBackground called');
@@ -837,7 +803,11 @@
                         console.log('No video element available');
                     }
                 }
+                
+                // Update time for effects animation
                 time += distortionSpeed * 0.01;
+                console.log('Time updated to:', time, 'distortionType:', distortionType);
+                
                 requestAnimationFrame(animate);
             }
             
@@ -856,32 +826,35 @@
             ctx.clearRect(0, 0, width, height);
             
             // Check if video is actually playing and has content
-            if (videoElement.paused || videoElement.currentTime === 0) {
-                return; // Don't draw until video is playing
+            if (!videoElement || videoElement.paused || videoElement.readyState < 2 || videoElement.videoWidth === 0) {
+                drawFallbackBackground();
+                return;
             }
             
             try {
                 // Apply camera settings first
                 applyCameraSettings(ctx);
                 
-                // Draw the base video
+                // Draw the base video first
                 ctx.drawImage(videoElement, 0, 0, width, height);
                 
                 // Apply distortion effects
                 switch (distortionType) {
                     case 'larsen':
+                        console.log('Applying Larsen effect...');
                         applyLarsenEffect(ctx, width, height);
                         break;
                     case 'glitch':
+                        console.log('Applying Glitch effect...');
                         applyGlitchEffect(ctx, width, height);
                         break;
                     case 'wave':
+                        console.log('Applying Wave effect...');
                         applyWaveEffect(ctx, width, height);
                         break;
+                    default:
+                        console.log('No distortion effect selected, using:', distortionType);
                 }
-                
-                // Apply visual filters
-                applyVisualFilters(ctx);
                 
                 // Add status indicator
                 ctx.fillStyle = '#00ff00';
@@ -1000,113 +973,89 @@
             ctx.fill();
         }
         
-        // Apply distortion effects
-        function applyDistortionEffect() {
-            const canvas = backgroundCanvas;
-            const ctx = backgroundCtx;
-            const width = canvas.width;
-            const height = canvas.height;
-            
-            // Clear canvas
-            ctx.clearRect(0, 0, width, height);
-            
-            if (videoElement && videoElement.videoWidth > 0 && videoElement.readyState >= 2) {
-                // Apply camera settings and filters
-                applyCameraSettings(ctx);
-                
-                // Draw the base video first (without distortion)
-                try {
-                    ctx.drawImage(videoElement, 0, 0, width, height);
-                } catch (e) {
-                    console.error('Error drawing video:', e);
-                    drawFallbackBackground();
-                    return;
-                }
-                
-                // Apply distortion effects on top
-                switch (distortionType) {
-                    case 'larsen':
-                        applyLarsenEffect(ctx, width, height);
-                        break;
-                    case 'glitch':
-                        applyGlitchEffect(ctx, width, height);
-                        break;
-                    case 'wave':
-                        applyWaveEffect(ctx, width, height);
-                        break;
-                }
-                
-                // Apply visual filters
-                applyVisualFilters(ctx);
-            } else {
-                drawFallbackBackground();
-            }
-        }
+
         
         // Apply camera settings
         function applyCameraSettings(ctx) {
             ctx.filter = `brightness(${cameraBrightness}%) contrast(${cameraContrast}%) saturate(${cameraSaturation}%)`;
         }
         
-        // Apply visual filters
-        function applyVisualFilters(ctx) {
-            let filterString = '';
-            
-            if (activeFilters.invert) filterString += 'invert(1) ';
-            if (activeFilters.grayscale) filterString += 'grayscale(1) ';
-            if (activeFilters.sepia) filterString += 'sepia(1) ';
-            if (activeFilters.blur) filterString += 'blur(2px) ';
-            
-            if (filterString) {
-                ctx.filter = filterString;
-            }
-        }
+
         
         // Larsen Effect (psychedelic infinite feedback loop with disintegration)
         function applyLarsenEffect(ctx, width, height) {
-            const intensity = distortionIntensity * 0.02;
-            const feedbackLayers = Math.floor(intensity * 20) + 5; // 5-25 feedback layers
-            const rotationSpeed = distortionSpeed * 0.05;
+            console.log('Larsen effect called with intensity:', distortionIntensity, 'speed:', distortionSpeed, 'time:', time);
             
-            // Create multiple feedback layers with increasing disintegration
+            const intensity = distortionIntensity * 0.08;
+            const feedbackLayers = Math.floor(intensity * 20) + 5;
+            const rotationSpeed = distortionSpeed * 0.15;
+            
+            console.log('Larsen effect parameters:', { intensity, feedbackLayers, rotationSpeed });
+            
+            // Create a temporary canvas to store the current video frame
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            
+            // Draw the current video frame to temp canvas
+            tempCtx.drawImage(videoElement, 0, 0, width, height);
+            
+            // FIRST OVERLAY: Static video - NO movement, just slight scale
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(0); // NO rotation - completely static
+            ctx.scale(1.05, 1.05); // Just slight scale, no movement
+            ctx.translate(-width / 2, -height / 2);
+            ctx.globalAlpha = 0.6; // Increased opacity for better visibility
+            ctx.filter = `hue-rotate(${(time * 30) % 360}deg) saturate(2.2) brightness(1.3)`; // Only color changes, no movement
+            ctx.drawImage(tempCanvas, 0, 0, width, height);
+            ctx.restore();
+            
+            // SECOND OVERLAY: Moving video with intense transformations
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(time * rotationSpeed * 2);
+            ctx.scale(1.25, 1.25); // Increased scale to make it more "moving"
+            ctx.translate(-width / 2 + Math.sin(time * 2) * intensity * 100, -height / 2 + Math.cos(time * 1.5) * intensity * 80);
+            ctx.globalAlpha = 0.5; // Increased opacity for better visibility
+            ctx.filter = `hue-rotate(${(time * 60 + 180) % 360}deg) saturate(2.5) brightness(1.4)`; // Increased saturation and brightness
+            ctx.drawImage(tempCanvas, 0, 0, width, height);
+            ctx.restore();
+            
+            // THIRD OVERLAY: Disintegrated sections for that trippy effect
             for (let layer = 0; layer < feedbackLayers; layer++) {
                 const layerIntensity = layer / feedbackLayers;
                 const rotation = time * rotationSpeed * (1 + layer * 0.3);
-                const scale = 1 + layerIntensity * 0.5;
-                const offsetX = Math.sin(time * (1 + layer * 0.5)) * intensity * 100 * layerIntensity;
-                const offsetY = Math.cos(time * (0.7 + layer * 0.3)) * intensity * 80 * layerIntensity;
+                const scale = 1 + layerIntensity * 0.3;
+                const offsetX = Math.sin(time * (1 + layer * 0.5)) * intensity * 150 * layerIntensity;
+                const offsetY = Math.cos(time * (0.7 + layer * 0.3)) * intensity * 120 * layerIntensity;
                 
                 ctx.save();
-                
-                // Move to center for rotation
                 ctx.translate(width / 2, height / 2);
-                
-                // Apply psychedelic transformations
                 ctx.rotate(rotation);
                 ctx.scale(scale, scale);
                 ctx.translate(-width / 2 + offsetX, -height / 2 + offsetY);
                 
-                // Add color shifts for psychedelic effect
+                // Color shifts for psychedelic effect
                 const hueShift = (time * 50 + layer * 30) % 360;
                 ctx.filter = `hue-rotate(${hueShift}deg) saturate(${1.5 + layerIntensity})`;
-                
-                // Draw the video with transparency for layering
-                ctx.globalAlpha = 0.1 + layerIntensity * 0.3;
+                ctx.globalAlpha = 0.2 + layerIntensity * 0.3;
                 
                 // Create disintegration effect by drawing partial sections
-                const sectionWidth = width / (3 + layer);
-                const sectionHeight = height / (3 + layer);
+                const sectionWidth = Math.max(15, width / (4 + layer));
+                const sectionHeight = Math.max(15, height / (4 + layer));
                 
                 for (let x = 0; x < width; x += sectionWidth) {
                     for (let y = 0; y < height; y += sectionHeight) {
                         // Random disintegration - some sections are missing
-                        if (Math.random() > layerIntensity * 0.3) {
+                        if (Math.random() > layerIntensity * 0.4) {
                             try {
                                 ctx.drawImage(
-                                    videoElement,
+                                    tempCanvas,
                                     x, y, sectionWidth, sectionHeight,
-                                    x + Math.sin(time + x * 0.01) * 10,
-                                    y + Math.cos(time + y * 0.01) * 10,
+                                    x + Math.sin(time + x * 0.01) * 15,
+                                    y + Math.cos(time + y * 0.01) * 15,
                                     sectionWidth, sectionHeight
                                 );
                             } catch (e) {
@@ -1115,16 +1064,23 @@
                         }
                     }
                 }
-                
                 ctx.restore();
             }
             
-            // Add final psychedelic overlay
+            // Final psychedelic overlay
             ctx.save();
-            ctx.globalAlpha = 0.3;
+            ctx.globalAlpha = 0.2;
             ctx.fillStyle = `hsl(${(time * 100) % 360}, 70%, 50%)`;
             ctx.fillRect(0, 0, width, height);
+            
+            // Add text indicator that Larsen effect is active
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '24px Arial';
+            ctx.fillText('LARSEN EFFECT ACTIVE', 20, 80);
+            
             ctx.restore();
+            
+            console.log('Larsen effect completed');
         }
         
         // Glitch Effect (intense psychedelic disintegration)
@@ -1310,13 +1266,14 @@
             });
             
             // Visual filter buttons
-            const filterButtons = document.querySelectorAll('#invert-filter, #grayscale-filter, #sepia-filter, #blur-filter');
+            const filterButtons = document.querySelectorAll('#no-filters');
             filterButtons.forEach(button => {
                 button.addEventListener('click', function() {
-                    const filterType = this.id.replace('-filter', '');
-                    activeFilters[filterType] = !activeFilters[filterType];
-                    this.classList.toggle('active');
-                    console.log(`${filterType} filter:`, activeFilters[filterType] ? 'ON' : 'OFF');
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    console.log('No filters selected');
                 });
             });
             
