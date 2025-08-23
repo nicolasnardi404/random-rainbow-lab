@@ -111,21 +111,38 @@ function playNoteFromHand(hand, isRightHand) {
 
   try {
     const wrist = hand[0];
-    const indexTip = hand[8];
     const thumbTip = hand[4];
+    const indexTip = hand[8];
+    const middleTip = hand[12];
+    const ringTip = hand[16];
+    const pinkyTip = hand[20];
 
     // Check if landmark points exist and have x,y coordinates
     if (
       !wrist ||
-      !indexTip ||
       !thumbTip ||
+      !indexTip ||
+      !middleTip ||
+      !ringTip ||
+      !pinkyTip ||
       typeof wrist.x === "undefined" ||
       typeof wrist.y === "undefined" ||
+      typeof thumbTip.x === "undefined" ||
+      typeof thumbTip.y === "undefined" ||
       typeof indexTip.x === "undefined" ||
-      typeof indexTip.y === "undefined"
+      typeof indexTip.y === "undefined" ||
+      typeof middleTip.x === "undefined" ||
+      typeof middleTip.y === "undefined" ||
+      typeof ringTip.x === "undefined" ||
+      typeof ringTip.y === "undefined" ||
+      typeof pinkyTip.x === "undefined" ||
+      typeof pinkyTip.y === "undefined"
     ) {
       return;
     }
+
+    // Process individual finger movements
+    processIndividualFingers(hand, isRightHand);
 
     // Calculate pinch distance between thumb tip and index tip
     const pinchDistance = Math.sqrt(
@@ -151,7 +168,7 @@ function playNoteFromHand(hand, isRightHand) {
           ];
         frequency = baseFreq * Math.pow(2, note / 12);
 
-        // Map X position to note duration
+        // Map X position to note length
         const durationMap = [0.25, 0.5, 1, 2, 4]; // quarter, half, whole, etc.
         const durationIndex = Math.floor(noteLengthX * durationMap.length);
         duration = durationMap[Math.min(durationIndex, durationMap.length - 1)];
@@ -183,6 +200,186 @@ function playNoteFromHand(hand, isRightHand) {
     }
   } catch (error) {
     console.error("Error in playNoteFromHand:", error);
+  }
+}
+
+// Process individual finger movements for different effects
+function processIndividualFingers(hand, isRightHand) {
+  try {
+    const wrist = hand[0];
+    const thumbTip = hand[4];
+    const indexTip = hand[8];
+    const middleTip = hand[12];
+    const ringTip = hand[16];
+    const pinkyTip = hand[20];
+
+    // Calculate finger positions relative to wrist
+    const thumbRelative = {
+      x: thumbTip.x - wrist.x,
+      y: thumbTip.y - wrist.y,
+    };
+    const indexRelative = {
+      x: indexTip.x - wrist.x,
+      y: indexTip.y - wrist.y,
+    };
+    const middleRelative = {
+      x: middleTip.x - wrist.x,
+      y: middleTip.y - wrist.y,
+    };
+    const ringRelative = {
+      x: ringTip.x - wrist.x,
+      y: ringTip.y - wrist.y,
+    };
+    const pinkyRelative = {
+      x: pinkyTip.x - wrist.x,
+      y: pinkyTip.y - wrist.y,
+    };
+
+    // THUMB: Add audio distortion based on position
+    if (isRightHand) {
+      // Right hand thumb adds pitch distortion
+      const thumbDistance = Math.sqrt(
+        thumbRelative.x * thumbRelative.x + thumbRelative.y * thumbRelative.y
+      );
+      if (thumbDistance > 0.1) {
+        // Add pitch bend based on thumb position
+        const pitchBend = (thumbRelative.x + 0.5) * 2 - 1; // -1 to 1
+        if (synth) {
+          synth.freq(baseFreq * Math.pow(2, pitchBend * 0.5));
+        }
+        if (piano) {
+          piano.freq(baseFreq * Math.pow(2, pitchBend * 0.5));
+        }
+        if (bass) {
+          bass.freq(baseFreq * Math.pow(2, pitchBend * 0.5));
+        }
+      }
+    } else {
+      // Left hand thumb adds frequency modulation
+      const thumbDistance = Math.sqrt(
+        thumbRelative.x * thumbRelative.x + thumbRelative.y * thumbRelative.y
+      );
+      if (thumbDistance > 0.05) {
+        const modFreq = thumbDistance * 10; // 0-10 Hz modulation
+        if (synth) {
+          // Add vibrato effect
+          const vibrato = Math.sin(Date.now() * 0.001 * modFreq) * 0.1;
+          synth.freq(baseFreq * (1 + vibrato));
+        }
+      }
+    }
+
+    // INDEX FINGER: Add audio effects based on position
+    const indexDistance = Math.sqrt(
+      indexRelative.x * indexRelative.x + indexRelative.y * indexRelative.y
+    );
+    if (indexDistance > 0.1) {
+      if (isRightHand) {
+        // Right hand index adds harmonic distortion
+        const harmonicAmount = Math.min(1, indexDistance * 3);
+        if (synth) {
+          // Add overtones with random timing
+          const overtone = new p5.Oscillator("sine");
+          overtone.amp(harmonicAmount * 0.3);
+          overtone.freq(baseFreq * (2 + Math.random() * 0.5)); // Slightly random harmonic
+          overtone.start();
+          setTimeout(() => overtone.stop(), 150 + Math.random() * 100); // Random duration
+        }
+      } else {
+        // Left hand index adds random noise bursts
+        if (Math.random() < 0.3) {
+          // Only 30% chance to avoid constant noise
+          const noise = new p5.Oscillator("sawtooth");
+          noise.amp(indexDistance * 0.2);
+          noise.freq(200 + Math.random() * 400);
+          noise.start();
+          setTimeout(() => noise.stop(), 50 + Math.random() * 100);
+        }
+      }
+    }
+
+    // MIDDLE FINGER: Add audio modulation effects
+    const middleDistance = Math.sqrt(
+      middleRelative.x * middleRelative.x + middleRelative.y * middleRelative.y
+    );
+    if (middleDistance > 0.1) {
+      if (isRightHand) {
+        // Right hand middle adds amplitude modulation
+        const ampMod = Math.sin(Date.now() * 0.002) * middleDistance * 0.5;
+        if (synth) {
+          synth.amp(Math.max(0.1, 0.5 + ampMod));
+        }
+        if (piano) {
+          piano.amp(Math.max(0.1, 0.4 + ampMod));
+        }
+        if (bass) {
+          bass.amp(Math.max(0.1, 0.3 + ampMod));
+        }
+      } else {
+        // Left hand middle adds delay effect
+        const delayAmount = Math.min(1, middleDistance * 2);
+        if (synth && synth.isPlaying()) {
+          setTimeout(() => {
+            if (synth) {
+              const delay = new p5.Oscillator("sine");
+              delay.amp(delayAmount * 0.3);
+              delay.freq(synth.freq());
+              delay.start();
+              setTimeout(() => delay.stop(), 400);
+            }
+          }, 200);
+        }
+      }
+    }
+
+    // RING FINGER: Add audio filter effects
+    const ringDistance = Math.sqrt(
+      ringRelative.x * ringRelative.x + ringRelative.y * ringRelative.y
+    );
+    if (ringDistance > 0.1) {
+      if (isRightHand) {
+        // Right hand ring adds filter sweep
+        const filterFreq = ringDistance * 2000; // 0-2000 Hz filter
+        if (synth) {
+          // Simulate low-pass filter effect
+          const filterAmount = Math.sin(Date.now() * 0.001) * 0.3;
+          synth.amp(Math.max(0.1, 0.5 - filterAmount));
+        }
+      } else {
+        // Left hand ring adds random frequency modulation
+        const modAmount = ringDistance * 0.5;
+        if (synth && synth.isPlaying()) {
+          const randomFreq = Math.sin(Date.now() * 0.001) * modAmount;
+          synth.freq(baseFreq * (1 + randomFreq));
+        }
+      }
+    }
+
+    // PINKY FINGER: Add special audio effects
+    const pinkyDistance = Math.sqrt(
+      pinkyRelative.x * pinkyRelative.x + pinkyRelative.y * pinkyRelative.y
+    );
+    if (pinkyDistance > 0.1) {
+      if (isRightHand) {
+        // Right hand pinky adds frequency sweep
+        const sweepFreq = pinkyDistance * 1000; // 0-1000 Hz sweep
+        if (synth) {
+          const sweep = Math.sin(Date.now() * 0.001 * sweepFreq) * 0.2;
+          synth.freq(baseFreq * (1 + sweep));
+        }
+      } else {
+        // Left hand pinky adds noise burst
+        if (pinkyDistance > 0.15) {
+          const noise = new p5.Oscillator("sawtooth");
+          noise.amp(0.2);
+          noise.freq(100 + Math.random() * 200);
+          noise.start();
+          setTimeout(() => noise.stop(), 100);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error processing individual fingers:", error);
   }
 }
 
