@@ -647,8 +647,21 @@
         
         // Initialize video background
         function initVideoBackground() {
+            console.log('initVideoBackground called');
+            
             backgroundCanvas = document.getElementById('background-canvas');
+            if (!backgroundCanvas) {
+                console.error('Background canvas element not found!');
+                return;
+            }
+            
             backgroundCtx = backgroundCanvas.getContext('2d');
+            if (!backgroundCtx) {
+                console.error('Could not get 2D context from canvas!');
+                return;
+            }
+            
+            console.log('Canvas and context created successfully');
             
             // Force canvas to be visible
             backgroundCanvas.style.display = 'block';
@@ -658,12 +671,28 @@
             backgroundCanvas.style.border = '5px solid red'; // Thicker border to see canvas
             backgroundCanvas.style.backgroundColor = '#000000'; // Black background
             
+            // Log canvas styles to debug
+            const computedStyle = window.getComputedStyle(backgroundCanvas);
+            console.log('Canvas computed styles:', {
+                display: computedStyle.display,
+                visibility: computedStyle.visibility,
+                opacity: computedStyle.opacity,
+                zIndex: computedStyle.zIndex,
+                position: computedStyle.position,
+                top: computedStyle.top,
+                left: computedStyle.left,
+                width: computedStyle.width,
+                height: computedStyle.height
+            });
+            
             // Update canvas status
             updateStatus('canvas-status', 'Initialized');
             
             // Set canvas size to window size
             backgroundCanvas.width = window.innerWidth;
             backgroundCanvas.height = window.innerHeight;
+            
+            console.log('Canvas size set to:', backgroundCanvas.width, 'x', backgroundCanvas.height);
             
             // Test canvas immediately
             const testCtx = backgroundCtx;
@@ -673,12 +702,16 @@
             testCtx.font = '20px Arial';
             testCtx.fillText('CANVAS WORKING!', 10, 60);
             
+            console.log('Test pattern drawn to canvas');
+            
             // Create video element for webcam
             videoElement = document.createElement('video');
             videoElement.autoplay = true;
             videoElement.muted = true;
             videoElement.playsInline = true;
             videoElement.style.display = 'none'; // Hide the video element
+            
+            console.log('Video element created');
             
             // Update video status
             updateStatus('video-status', 'Requesting camera...');
@@ -692,16 +725,48 @@
                 } 
             })
             .then(stream => {
+                console.log('Webcam stream received');
                 videoElement.srcObject = stream;
                 updateStatus('video-status', 'Stream received');
                 
-                videoElement.addEventListener('loadedmetadata', () => {
-                    updateStatus('video-status', `Loaded: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
-                    startBackgroundAnimation();
+                // Force the video to start playing immediately
+                videoElement.play().then(() => {
+                    console.log('Video started playing immediately');
+                }).catch(err => {
+                    console.error('Immediate video play failed:', err);
                 });
+                
+                videoElement.addEventListener('loadedmetadata', () => {
+                    console.log('Video metadata loaded:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+                    updateStatus('video-status', `Loaded: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                    
+                    // Force the video to play again
+                    videoElement.play().then(() => {
+                        console.log('Video play() successful after metadata');
+                    }).catch(err => {
+                        console.error('Video play() failed after metadata:', err);
+                    });
+                    
+                    startBackgroundAnimation();
+                    
+                    // Force draw video after a short delay
+                    setTimeout(() => {
+                        console.log('Forcing video draw...');
+                        if (backgroundCtx && videoElement) {
+                            drawSimpleVideo();
+                        }
+                    }, 1000);
+                });
+                
                 videoElement.addEventListener('play', () => {
+                    console.log('Video started playing');
                     updateStatus('video-status', 'Playing');
                 });
+                
+                videoElement.addEventListener('playing', () => {
+                    console.log('Video is now playing');
+                });
+                
                 videoElement.addEventListener('error', (e) => {
                     console.error('Video error:', e);
                     updateStatus('video-status', 'Error: ' + e.message);
@@ -748,35 +813,41 @@
         
         // Start background animation loop
         function startBackgroundAnimation() {
+            console.log('Starting background animation loop...');
+            
             function animate() {
                 if (videoElement && videoElement.videoWidth > 0 && videoElement.readyState >= 2) {
-                    // Check if we're in direct video mode
-                    const toggleBtn = document.getElementById('toggle-effects');
-                    const isDirectMode = toggleBtn && toggleBtn.getAttribute('data-mode') === 'direct';
-                    
-                    if (isDirectMode) {
-                        // Draw video directly without effects
-                        drawVideoDirectly();
-                    } else {
-                        // First, try to draw the video directly to test
-                        if (time < 0.1) { // First few frames
-                            drawVideoDirectly();
-                        } else {
-                            applyDistortionEffect();
-                        }
-                    }
+                    // Simple video drawing - no effects
+                    drawSimpleVideo();
                 } else {
                     // Draw a fallback background if video isn't ready
                     drawFallbackBackground();
+                    
+                    // Log video status for debugging
+                    if (videoElement) {
+                        console.log('Video status:', {
+                            readyState: videoElement.readyState,
+                            videoWidth: videoElement.videoWidth,
+                            videoHeight: videoElement.videoHeight,
+                            currentTime: videoElement.currentTime,
+                            paused: videoElement.paused,
+                            ended: videoElement.ended
+                        });
+                    } else {
+                        console.log('No video element available');
+                    }
                 }
                 time += distortionSpeed * 0.01;
                 requestAnimationFrame(animate);
             }
+            
+            // Start the animation loop
             animate();
+            console.log('Animation loop started');
         }
         
-        // Draw video directly without effects (for testing)
-        function drawVideoDirectly() {
+        // Draw simple video without effects
+        function drawSimpleVideo() {
             const ctx = backgroundCtx;
             const width = backgroundCanvas.width;
             const height = backgroundCanvas.height;
@@ -784,68 +855,77 @@
             // Clear canvas
             ctx.clearRect(0, 0, width, height);
             
-            // Check if video is ready
-            if (!videoElement || videoElement.readyState < 2) {
-                return;
-            }
+            // First, test if canvas context is working by drawing a simple pattern
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(0, 0, 200, 100);
+            ctx.fillStyle = '#000000';
+            ctx.font = '20px Arial';
+            ctx.fillText('Canvas Test', 10, 50);
             
-            try {
-                // Draw video directly - simple approach
-                ctx.drawImage(videoElement, 0, 0, width, height);
-                
-                // Add a visible indicator that video was drawn
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(10, 10, 200, 100);
-                ctx.fillStyle = '#00ff00';
-                ctx.font = '20px Arial';
-                ctx.fillText('VIDEO DRAWN!', 20, 50);
-                
-            } catch (e) {
-                console.error('Error drawing video directly:', e);
-                // Draw error background
+            // Debug: Log video element status
+            console.log('drawSimpleVideo called');
+            console.log('Video element:', videoElement);
+            console.log('Video readyState:', videoElement ? videoElement.readyState : 'No video');
+            console.log('Video dimensions:', videoElement ? `${videoElement.videoWidth}x${videoElement.videoHeight}` : 'No video');
+            console.log('Video currentTime:', videoElement ? videoElement.currentTime : 'No video');
+            console.log('Video paused:', videoElement ? videoElement.paused : 'No video');
+            
+            // Check video element
+            if (!videoElement) {
                 ctx.fillStyle = '#ff0000';
                 ctx.fillRect(0, 0, width, height);
                 ctx.fillStyle = '#ffffff';
                 ctx.font = '24px Arial';
-                ctx.fillText('VIDEO ERROR!', width/2 - 100, height/2);
+                ctx.fillText('No video element!', 50, 180);
+                return;
             }
-        }
-        
-        // Alternative video drawing method using temp canvas
-        function drawVideoWithTempCanvas() {
-            const ctx = backgroundCtx;
-            const width = backgroundCanvas.width;
-            const height = backgroundCanvas.height;
             
-            // Clear canvas
-            ctx.clearRect(0, 0, width, height);
+            if (videoElement.readyState < 2) {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '24px Arial';
+                ctx.fillText(`Video not ready: ${videoElement.readyState}`, 50, 180);
+                return;
+            }
             
-            // Draw green background to test
-            ctx.fillStyle = '#00ff00';
-            ctx.fillRect(0, 0, width, height);
-            
-            if (!videoElement || videoElement.readyState < 2) {
+            if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '24px Arial';
+                ctx.fillText('Video dimensions: 0x0', 50, 180);
                 return;
             }
             
             try {
-                // Create a temporary canvas
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = videoElement.videoWidth;
-                tempCanvas.height = videoElement.videoHeight;
+                // Check if video is actually playing and has content
+                if (videoElement.paused || videoElement.currentTime === 0) {
+                    console.log('Video is paused or has no content, trying to play...');
+                    videoElement.play().then(() => {
+                        console.log('Video play() successful in draw function');
+                    }).catch(err => {
+                        console.error('Video play() failed in draw function:', err);
+                    });
+                    return; // Don't draw until video is playing
+                }
                 
-                // Draw video to temp canvas first
-                tempCtx.drawImage(videoElement, 0, 0);
+                // Draw video directly - simple and clean
+                ctx.drawImage(videoElement, 0, 0, width, height);
+                console.log('Video drawn successfully to canvas');
                 
-                // Then draw temp canvas to main canvas
-                ctx.drawImage(tempCanvas, 0, 0, width, height);
-                
-                console.log('Video drawn using temp canvas method');
+                // Add a small status indicator in corner
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '16px Arial';
+                ctx.fillText('VIDEO LIVE', 20, 30);
                 
             } catch (e) {
-                console.error('Error with temp canvas method:', e);
+                console.error('Error drawing video:', e);
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(0, 0, width, height);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '24px Arial';
+                ctx.fillText(`Error: ${e.message}`, 50, 220);
             }
         }
         
@@ -1039,8 +1119,19 @@
         
         // Event listeners for distortion controls
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing video background...');
+            
             // Initialize video background
             initVideoBackground();
+            
+            // Also try to initialize after a short delay
+            setTimeout(() => {
+                console.log('Delayed video background initialization...');
+                if (!backgroundCanvas || !backgroundCtx) {
+                    console.log('Canvas not ready, retrying...');
+                    initVideoBackground();
+                }
+            }, 2000);
             
             // Camera settings sliders
             const brightnessSlider = document.getElementById('camera-brightness');
@@ -1159,7 +1250,7 @@
                         console.log('Video paused:', videoElement.paused);
                         console.log('Video ended:', videoElement.ended);
                         
-                        drawVideoDirectly();
+                        drawSimpleVideo();
                     } else {
                         console.log('Video not ready for drawing');
                     }
@@ -1170,7 +1261,7 @@
             if (testTempCanvasBtn) {
                 testTempCanvasBtn.addEventListener('click', function() {
                     if (videoElement && videoElement.readyState >= 2) {
-                        drawVideoWithTempCanvas();
+                        // drawSimpleVideo(); // This function is now redundant
                     } else {
                         console.log('Video not ready for temp canvas drawing');
                     }
