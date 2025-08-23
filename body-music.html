@@ -1145,11 +1145,11 @@
             ctx.restore();
         }
         
-        // PSYCHEDELIC WORMHOLE DIMENSION Effect (spiral into infinity)
+        // PSYCHEDELIC WORMHOLE DIMENSION Effect (multiple videos diving into black hole)
         function applyWaveEffect(ctx, width, height) {
             const intensity = distortionIntensity * 0.02;
-            const spiralLayers = Math.floor(intensity * 30) + 15; // 15-45 spiral layers
-            const spiralSpeed = distortionSpeed * 0.3;
+            const videoCount = Math.floor(intensity * 20) + 8; // 8-28 video instances
+            const wormholeSpeed = distortionSpeed * 0.4;
             
             // Create a temporary canvas for the effect
             const tempCanvas = document.createElement('canvas');
@@ -1160,71 +1160,96 @@
             // Draw the current video frame to temp canvas
             tempCtx.drawImage(videoElement, 0, 0, width, height);
             
-            // Create spiral wormhole effect
-            for (let i = 0; i < spiralLayers; i++) {
-                const layerIntensity = i / spiralLayers;
-                const spiralRadius = layerIntensity * Math.min(width, height) * 0.8;
-                const spiralAngle = time * spiralSpeed * (1 + i * 0.3);
-                const spiralX = width / 2 + Math.cos(spiralAngle) * spiralRadius;
-                const spiralY = height / 2 + Math.sin(spiralAngle) * spiralRadius;
+            // Create multiple video instances filling the center space
+            for (let i = 0; i < videoCount; i++) {
+                const videoIntensity = i / videoCount;
+                
+                // Calculate position - videos move in complex patterns filling center space
+                const baseRadius = Math.min(width, height) * 0.3; // Base radius for center area
+                const dynamicRadius = baseRadius + Math.sin(time * wormholeSpeed * 2 + i) * baseRadius * 0.5;
+                
+                // Calculate angle for complex motion
+                const angle = time * wormholeSpeed * (1 + i * 0.7) + (i * Math.PI * 2) / videoCount;
+                const videoX = width / 2 + Math.cos(angle) * dynamicRadius;
+                const videoY = height / 2 + Math.sin(angle) * dynamicRadius;
                 
                 ctx.save();
                 
-                // Move to spiral center
-                ctx.translate(spiralX, spiralY);
+                // Move to video position
+                ctx.translate(videoX, videoY);
                 
-                // Apply spiral transformations
-                const rotation = time * spiralSpeed * 2 * (1 + i * 0.5);
-                const scale = 0.3 + layerIntensity * 1.2;
-                ctx.rotate(rotation);
+                // Calculate scale - videos vary in size for more chaos
+                const scale = 0.4 + Math.sin(time * 0.5 + i) * 0.3 + videoIntensity * 0.4;
                 ctx.scale(scale, scale);
                 
-                // Apply psychedelic wormhole filters
-                const hueShift = (time * 100 + i * 20) % 360;
-                const saturation = 1.8 + layerIntensity * 1.2;
-                const brightness = 0.8 + layerIntensity * 1.5;
+                // Calculate rotation - videos spin at different speeds
+                const rotation = time * wormholeSpeed * 4 * (1 + i * 0.5);
+                ctx.rotate(rotation);
+                
+                // Apply intense psychedelic filters
+                const hueShift = (time * 150 + i * 45) % 360;
+                const saturation = 2.0 + Math.sin(time + i) * 1.0;
+                const brightness = 1.0 + Math.sin(time * 0.7 + i) * 0.5;
                 ctx.filter = `hue-rotate(${hueShift}deg) saturate(${saturation}) brightness(${brightness})`;
                 
-                // Draw with wormhole effect
-                ctx.globalAlpha = 0.3 + layerIntensity * 0.4;
-                
-                // Create spiral distortion by drawing multiple rotated copies
-                for (let spiral = 0; spiral < 3; spiral++) {
-                    ctx.save();
-                    ctx.rotate((spiral * Math.PI * 2) / 3);
-                    ctx.scale(0.8, 1.2); // Stretch vertically for wormhole effect
-                    
-                    ctx.drawImage(tempCanvas, -width / 2, -height / 2, width, height);
-                    ctx.restore();
-                }
+                // Draw the video instance with high opacity
+                ctx.globalAlpha = 0.7 + Math.sin(time + i) * 0.2;
+                ctx.drawImage(tempCanvas, -width / 2, -height / 2, width, height);
                 
                 ctx.restore();
             }
             
-            // Add central wormhole vortex
-            ctx.save();
-            ctx.translate(width / 2, height / 2);
-            ctx.rotate(time * spiralSpeed * 3);
+            // Add extra center video chaos
+            for (let extra = 0; extra < 5; extra++) {
+                const extraIntensity = extra / 5;
+                const centerX = width / 2 + Math.sin(time * wormholeSpeed * 3 + extra) * 50;
+                const centerY = height / 2 + Math.cos(time * wormholeSpeed * 2.5 + extra) * 50;
+                
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                
+                // Extra videos in center with intense effects
+                const extraScale = 0.6 + Math.sin(time * 2 + extra) * 0.4;
+                const extraRotation = time * wormholeSpeed * 6 * (1 + extra * 0.8);
+                ctx.scale(extraScale, extraScale);
+                ctx.rotate(extraRotation);
+                
+                // Intense center filters
+                const extraHue = (time * 200 + extra * 60) % 360;
+                const extraSaturation = 2.5 + Math.sin(time * 1.5 + extra) * 1.5;
+                ctx.filter = `hue-rotate(${extraHue}deg) saturate(${extraSaturation}) brightness(1.5)`;
+                
+                ctx.globalAlpha = 0.8 + Math.sin(time * 1.2 + extra) * 0.2;
+                ctx.drawImage(tempCanvas, -width / 2, -height / 2, width, height);
+                
+                ctx.restore();
+            }
             
-            // Create vortex gradient
-            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 100);
-            gradient.addColorStop(0, `hsla(${(time * 150) % 360}, 100%, 70%, 0.8)`);
-            gradient.addColorStop(0.5, `hsla(${(time * 150 + 60) % 360}, 100%, 60%, 0.4)`);
-            gradient.addColorStop(1, 'transparent');
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(0, 0, 100, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.restore();
-            
-            // Add psychedelic wormhole overlay
-            ctx.save();
-            ctx.globalAlpha = 0.2;
-            ctx.fillStyle = `hsl(${(time * 80) % 360}, 100%, 50%)`;
-            ctx.fillRect(0, 0, width, height);
-            ctx.restore();
+            // Pure video chaos - no background, just more videos!
+            for (let chaos = 0; chaos < 3; chaos++) {
+                const chaosIntensity = chaos / 3;
+                const chaosX = Math.sin(time * wormholeSpeed * 4 + chaos) * width * 0.4 + width / 2;
+                const chaosY = Math.cos(time * wormholeSpeed * 3.5 + chaos) * height * 0.4 + height / 2;
+                
+                ctx.save();
+                ctx.translate(chaosX, chaosY);
+                
+                // Chaos videos with extreme effects
+                const chaosScale = 0.3 + Math.sin(time * 3 + chaos) * 0.2;
+                const chaosRotation = time * wormholeSpeed * 8 * (1 + chaos * 1.2);
+                ctx.scale(chaosScale, chaosScale);
+                ctx.rotate(chaosRotation);
+                
+                // Extreme chaos filters
+                const chaosHue = (time * 300 + chaos * 90) % 360;
+                const chaosSaturation = 3.0 + Math.sin(time * 2 + chaos) * 2.0;
+                ctx.filter = `hue-rotate(${chaosHue}deg) saturate(${chaosSaturation}) brightness(2.0)`;
+                
+                ctx.globalAlpha = 0.5 + Math.sin(time * 1.8 + chaos) * 0.3;
+                ctx.drawImage(tempCanvas, -width / 2, -height / 2, width, height);
+                
+                ctx.restore();
+            }
         }
         
         // Event listeners for distortion controls
