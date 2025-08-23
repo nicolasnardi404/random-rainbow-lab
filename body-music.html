@@ -817,8 +817,8 @@
             
             function animate() {
                 if (videoElement && videoElement.videoWidth > 0 && videoElement.readyState >= 2) {
-                    // Simple video drawing - no effects
-                    drawSimpleVideo();
+                    // Apply video effects based on current settings
+                    applyVideoEffects();
                 } else {
                     // Draw a fallback background if video isn't ready
                     drawFallbackBackground();
@@ -844,6 +844,55 @@
             // Start the animation loop
             animate();
             console.log('Animation loop started');
+        }
+        
+        // Apply video effects based on current settings
+        function applyVideoEffects() {
+            const ctx = backgroundCtx;
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Check if video is actually playing and has content
+            if (videoElement.paused || videoElement.currentTime === 0) {
+                return; // Don't draw until video is playing
+            }
+            
+            try {
+                // Apply camera settings first
+                applyCameraSettings(ctx);
+                
+                // Draw the base video
+                ctx.drawImage(videoElement, 0, 0, width, height);
+                
+                // Apply distortion effects
+                switch (distortionType) {
+                    case 'larsen':
+                        applyLarsenEffect(ctx, width, height);
+                        break;
+                    case 'glitch':
+                        applyGlitchEffect(ctx, width, height);
+                        break;
+                    case 'wave':
+                        applyWaveEffect(ctx, width, height);
+                        break;
+                }
+                
+                // Apply visual filters
+                applyVisualFilters(ctx);
+                
+                // Add status indicator
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '16px Arial';
+                ctx.fillText('VIDEO LIVE', 20, 30);
+                ctx.fillText(`${distortionType.toUpperCase()}`, 20, 50);
+                
+            } catch (e) {
+                console.error('Error applying video effects:', e);
+                drawFallbackBackground();
+            }
         }
         
         // Draw simple video without effects
@@ -1013,41 +1062,75 @@
             }
         }
         
-        // Larsen Effect (feedback loop with offset)
+        // Larsen Effect (psychedelic infinite feedback loop with disintegration)
         function applyLarsenEffect(ctx, width, height) {
-            const intensity = distortionIntensity * 0.1;
-            const offsetX = Math.sin(time) * intensity * 50;
-            const offsetY = Math.cos(time * 0.7) * intensity * 30;
+            const intensity = distortionIntensity * 0.02;
+            const feedbackLayers = Math.floor(intensity * 20) + 5; // 5-25 feedback layers
+            const rotationSpeed = distortionSpeed * 0.05;
             
-            // Create a temporary canvas for the effect
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCanvas.width = width;
-            tempCanvas.height = height;
-            
-            // Draw the current video frame to temp canvas
-            if (frameFrozen && frozenFrame) {
-                tempCtx.drawImage(frozenFrame, 0, 0, width, height);
-            } else {
-                tempCtx.drawImage(videoElement, 0, 0, width, height);
+            // Create multiple feedback layers with increasing disintegration
+            for (let layer = 0; layer < feedbackLayers; layer++) {
+                const layerIntensity = layer / feedbackLayers;
+                const rotation = time * rotationSpeed * (1 + layer * 0.3);
+                const scale = 1 + layerIntensity * 0.5;
+                const offsetX = Math.sin(time * (1 + layer * 0.5)) * intensity * 100 * layerIntensity;
+                const offsetY = Math.cos(time * (0.7 + layer * 0.3)) * intensity * 80 * layerIntensity;
+                
+                ctx.save();
+                
+                // Move to center for rotation
+                ctx.translate(width / 2, height / 2);
+                
+                // Apply psychedelic transformations
+                ctx.rotate(rotation);
+                ctx.scale(scale, scale);
+                ctx.translate(-width / 2 + offsetX, -height / 2 + offsetY);
+                
+                // Add color shifts for psychedelic effect
+                const hueShift = (time * 50 + layer * 30) % 360;
+                ctx.filter = `hue-rotate(${hueShift}deg) saturate(${1.5 + layerIntensity})`;
+                
+                // Draw the video with transparency for layering
+                ctx.globalAlpha = 0.1 + layerIntensity * 0.3;
+                
+                // Create disintegration effect by drawing partial sections
+                const sectionWidth = width / (3 + layer);
+                const sectionHeight = height / (3 + layer);
+                
+                for (let x = 0; x < width; x += sectionWidth) {
+                    for (let y = 0; y < height; y += sectionHeight) {
+                        // Random disintegration - some sections are missing
+                        if (Math.random() > layerIntensity * 0.3) {
+                            try {
+                                ctx.drawImage(
+                                    videoElement,
+                                    x, y, sectionWidth, sectionHeight,
+                                    x + Math.sin(time + x * 0.01) * 10,
+                                    y + Math.cos(time + y * 0.01) * 10,
+                                    sectionWidth, sectionHeight
+                                );
+                            } catch (e) {
+                                // Ignore drawing errors for partial sections
+                            }
+                        }
+                    }
+                }
+                
+                ctx.restore();
             }
             
-            // Draw with offset
+            // Add final psychedelic overlay
             ctx.save();
-            ctx.translate(offsetX, offsetY);
-            ctx.drawImage(tempCanvas, 0, 0);
-            
-            // Add feedback layer with transparency
-            ctx.globalAlpha = intensity * 0.3;
-            ctx.translate(-offsetX * 0.5, -offsetY * 0.5);
-            ctx.drawImage(tempCanvas, 0, 0);
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = `hsl(${(time * 100) % 360}, 70%, 50%)`;
+            ctx.fillRect(0, 0, width, height);
             ctx.restore();
         }
         
-        // Glitch Effect (random slices and color shifts)
+        // Glitch Effect (intense psychedelic disintegration)
         function applyGlitchEffect(ctx, width, height) {
-            const intensity = distortionIntensity * 0.01;
-            const sliceHeight = 10;
+            const intensity = distortionIntensity * 0.02;
+            const sliceHeight = 5; // Thinner slices for more intense effect
             const slices = Math.floor(height / sliceHeight);
             
             // Create a temporary canvas for the effect
@@ -1057,28 +1140,70 @@
             tempCanvas.height = height;
             
             // Draw the current video frame to temp canvas
-            if (frameFrozen && frozenFrame) {
-                tempCtx.drawImage(frozenFrame, 0, 0, width, height);
-            } else {
-                tempCtx.drawImage(videoElement, 0, 0, width, height);
-            }
+            tempCtx.drawImage(videoElement, 0, 0, width, height);
             
+            // Apply intense glitch disintegration
             for (let i = 0; i < slices; i++) {
                 const y = i * sliceHeight;
-                const sliceOffset = Math.random() * intensity * 100 - intensity * 50;
-                const sliceWidth = width + Math.random() * intensity * 100;
+                const sliceOffset = Math.sin(time * 10 + i * 0.1) * intensity * 200 - intensity * 100;
+                const sliceWidth = width + Math.sin(time * 5 + i * 0.2) * intensity * 300;
+                const sliceRotation = Math.sin(time * 3 + i * 0.1) * 0.1;
                 
                 ctx.save();
-                ctx.translate(sliceOffset, y);
+                ctx.translate(width / 2, y + sliceHeight / 2);
+                ctx.rotate(sliceRotation);
+                ctx.translate(-width / 2 + sliceOffset, -sliceHeight / 2);
                 
-                // Random color channel shift
-                if (Math.random() < intensity) {
-                    ctx.filter = `hue-rotate(${Math.random() * 360}deg)`;
+                // Intense color channel shifts and psychedelic effects
+                if (Math.random() < intensity * 2) {
+                    const hueShift = Math.random() * 360;
+                    const saturation = 1 + Math.random() * 2;
+                    ctx.filter = `hue-rotate(${hueShift}deg) saturate(${saturation})`;
                 }
                 
-                ctx.drawImage(tempCanvas, 0, y, width, sliceHeight, 0, 0, sliceWidth, sliceHeight);
+                // Random slice disintegration
+                if (Math.random() > 0.7) {
+                    // Some slices are completely missing (glitch effect)
+                    continue;
+                }
+                
+                // Draw slice with random distortion
+                const sourceX = Math.random() * 50;
+                const sourceWidth = width - sourceX;
+                
+                ctx.drawImage(
+                    tempCanvas,
+                    sourceX, y, sourceWidth, sliceHeight,
+                    0, 0, sliceWidth, sliceHeight
+                );
+                
                 ctx.restore();
             }
+            
+            // Add psychedelic glitch overlay
+            ctx.save();
+            ctx.globalAlpha = 0.2;
+            
+            // Create glitch scanlines
+            for (let y = 0; y < height; y += 4) {
+                if (Math.random() < intensity) {
+                    ctx.fillStyle = `hsl(${(time * 200 + y) % 360}, 100%, 50%)`;
+                    ctx.fillRect(0, y, width, 2);
+                }
+            }
+            
+            // Add random glitch blocks
+            for (let i = 0; i < intensity * 20; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const w = Math.random() * 100 + 20;
+                const h = Math.random() * 50 + 10;
+                
+                ctx.fillStyle = `hsl(${(time * 100 + i * 50) % 360}, 100%, 50%)`;
+                ctx.fillRect(x, y, w, h);
+            }
+            
+            ctx.restore();
         }
         
         // Wave Effect (sine wave distortion)
@@ -1094,11 +1219,7 @@
             tempCanvas.height = height;
             
             // Draw the current video frame to temp canvas
-            if (frameFrozen && frozenFrame) {
-                tempCtx.drawImage(frozenFrame, 0, 0, width, height);
-            } else {
-                tempCtx.drawImage(videoElement, 0, 0, width, height);
-            }
+            tempCtx.drawImage(videoElement, 0, 0, width, height);
             
             ctx.save();
             
@@ -1138,6 +1259,7 @@
             if (brightnessSlider) {
                 brightnessSlider.addEventListener('input', function() {
                     cameraBrightness = this.value;
+                    console.log('Brightness changed to:', cameraBrightness);
                 });
             }
             
@@ -1145,6 +1267,7 @@
             if (contrastSlider) {
                 contrastSlider.addEventListener('input', function() {
                     cameraContrast = this.value;
+                    console.log('Contrast changed to:', cameraContrast);
                 });
             }
             
@@ -1152,6 +1275,7 @@
             if (saturationSlider) {
                 saturationSlider.addEventListener('input', function() {
                     cameraSaturation = this.value;
+                    console.log('Saturation changed to:', cameraSaturation);
                 });
             }
             
@@ -1181,6 +1305,7 @@
                     this.classList.add('active');
                     // Set distortion type
                     distortionType = this.id.replace('-effect', '');
+                    console.log('Distortion effect changed to:', distortionType);
                 });
             });
             
@@ -1191,6 +1316,7 @@
                     const filterType = this.id.replace('-filter', '');
                     activeFilters[filterType] = !activeFilters[filterType];
                     this.classList.toggle('active');
+                    console.log(`${filterType} filter:`, activeFilters[filterType] ? 'ON' : 'OFF');
                 });
             });
             
@@ -1203,6 +1329,7 @@
                     if (backgroundCanvas) {
                         backgroundCanvas.style.transform = cameraFlipped ? 'scaleX(-1)' : 'scaleX(1)';
                     }
+                    console.log('Camera flipped:', cameraFlipped);
                 });
             }
             
@@ -1219,8 +1346,10 @@
                         tempCanvas.height = videoElement.videoHeight;
                         tempCtx.drawImage(videoElement, 0, 0);
                         frozenFrame = tempCanvas;
+                        console.log('Frame frozen');
                     } else {
                         frozenFrame = null;
+                        console.log('Frame unfrozen');
                     }
                 });
             }
