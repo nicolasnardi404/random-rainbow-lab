@@ -1073,21 +1073,16 @@
             ctx.fillStyle = `hsl(${(time * 100) % 360}, 70%, 50%)`;
             ctx.fillRect(0, 0, width, height);
             
-            // Add text indicator that Larsen effect is active
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '24px Arial';
-            ctx.fillText('LARSEN EFFECT ACTIVE', 20, 80);
-            
             ctx.restore();
             
             console.log('Larsen effect completed');
         }
         
-        // Glitch Effect (intense psychedelic disintegration)
+        // INFINITE MIRROR DIMENSION Effect (psychedelic kaleidoscope)
         function applyGlitchEffect(ctx, width, height) {
             const intensity = distortionIntensity * 0.02;
-            const sliceHeight = 5; // Thinner slices for more intense effect
-            const slices = Math.floor(height / sliceHeight);
+            const mirrorCount = Math.floor(intensity * 20) + 8; // 8-28 mirror reflections
+            const rotationSpeed = distortionSpeed * 0.2;
             
             // Create a temporary canvas for the effect
             const tempCanvas = document.createElement('canvas');
@@ -1098,75 +1093,63 @@
             // Draw the current video frame to temp canvas
             tempCtx.drawImage(videoElement, 0, 0, width, height);
             
-            // Apply intense glitch disintegration
-            for (let i = 0; i < slices; i++) {
-                const y = i * sliceHeight;
-                const sliceOffset = Math.sin(time * 10 + i * 0.1) * intensity * 200 - intensity * 100;
-                const sliceWidth = width + Math.sin(time * 5 + i * 0.2) * intensity * 300;
-                const sliceRotation = Math.sin(time * 3 + i * 0.1) * 0.1;
+            // Create infinite mirror reflections
+            for (let i = 0; i < mirrorCount; i++) {
+                const layerIntensity = i / mirrorCount;
+                const rotation = time * rotationSpeed * (1 + i * 0.5);
+                const scale = 0.8 + layerIntensity * 0.6;
+                const offsetX = Math.sin(time * (1 + i * 0.3)) * intensity * 300 * layerIntensity;
+                const offsetY = Math.cos(time * (0.8 + i * 0.4)) * intensity * 250 * layerIntensity;
                 
                 ctx.save();
-                ctx.translate(width / 2, y + sliceHeight / 2);
-                ctx.rotate(sliceRotation);
-                ctx.translate(-width / 2 + sliceOffset, -sliceHeight / 2);
                 
-                // Intense color channel shifts and psychedelic effects
-                if (Math.random() < intensity * 2) {
-                    const hueShift = Math.random() * 360;
-                    const saturation = 1 + Math.random() * 2;
-                    ctx.filter = `hue-rotate(${hueShift}deg) saturate(${saturation})`;
+                // Move to center for rotation
+                ctx.translate(width / 2, height / 2);
+                ctx.rotate(rotation);
+                ctx.scale(scale, scale);
+                ctx.translate(-width / 2 + offsetX, -height / 2 + offsetY);
+                
+                // Apply psychedelic mirror filters
+                const hueShift = (time * 80 + i * 45) % 360;
+                const saturation = 1.5 + layerIntensity * 1.5;
+                ctx.filter = `hue-rotate(${hueShift}deg) saturate(${saturation}) brightness(${1.2 + layerIntensity * 0.8})`;
+                
+                // Draw with mirror effect
+                ctx.globalAlpha = 0.2 + layerIntensity * 0.4;
+                
+                // Create mirror symmetry by drawing multiple copies
+                for (let mirror = 0; mirror < 4; mirror++) {
+                    ctx.save();
+                    ctx.translate(width / 2, height / 2);
+                    ctx.rotate((mirror * Math.PI) / 2);
+                    ctx.translate(-width / 2, -height / 2);
+                    
+                    // Flip horizontally for some mirrors
+                    if (mirror % 2 === 1) {
+                        ctx.scale(-1, 1);
+                        ctx.translate(-width, 0);
+                    }
+                    
+                    ctx.drawImage(tempCanvas, 0, 0, width, height);
+                    ctx.restore();
                 }
-                
-                // Random slice disintegration
-                if (Math.random() > 0.7) {
-                    // Some slices are completely missing (glitch effect)
-                    continue;
-                }
-                
-                // Draw slice with random distortion
-                const sourceX = Math.random() * 50;
-                const sourceWidth = width - sourceX;
-                
-                ctx.drawImage(
-                    tempCanvas,
-                    sourceX, y, sourceWidth, sliceHeight,
-                    0, 0, sliceWidth, sliceHeight
-                );
                 
                 ctx.restore();
             }
             
-            // Add psychedelic glitch overlay
+            // Add psychedelic mirror overlay
             ctx.save();
-            ctx.globalAlpha = 0.2;
-            
-            // Create glitch scanlines
-            for (let y = 0; y < height; y += 4) {
-                if (Math.random() < intensity) {
-                    ctx.fillStyle = `hsl(${(time * 200 + y) % 360}, 100%, 50%)`;
-                    ctx.fillRect(0, y, width, 2);
-                }
-            }
-            
-            // Add random glitch blocks
-            for (let i = 0; i < intensity * 20; i++) {
-                const x = Math.random() * width;
-                const y = Math.random() * height;
-                const w = Math.random() * 100 + 20;
-                const h = Math.random() * 50 + 10;
-                
-                ctx.fillStyle = `hsl(${(time * 100 + i * 50) % 360}, 100%, 50%)`;
-                ctx.fillRect(x, y, w, h);
-            }
-            
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = `hsl(${(time * 120) % 360}, 100%, 60%)`;
+            ctx.fillRect(0, 0, width, height);
             ctx.restore();
         }
         
-        // Wave Effect (sine wave distortion)
+        // PSYCHEDELIC WORMHOLE DIMENSION Effect (spiral into infinity)
         function applyWaveEffect(ctx, width, height) {
             const intensity = distortionIntensity * 0.02;
-            const waveHeight = intensity * 100;
-            const waveSpeed = distortionSpeed * 0.1;
+            const spiralLayers = Math.floor(intensity * 30) + 15; // 15-45 spiral layers
+            const spiralSpeed = distortionSpeed * 0.3;
             
             // Create a temporary canvas for the effect
             const tempCanvas = document.createElement('canvas');
@@ -1177,20 +1160,70 @@
             // Draw the current video frame to temp canvas
             tempCtx.drawImage(videoElement, 0, 0, width, height);
             
-            ctx.save();
-            
-            // Create wave distortion
-            for (let x = 0; x < width; x += 2) {
-                const waveOffset = Math.sin(x * 0.01 + time * waveSpeed) * waveHeight;
-                const sliceWidth = 2;
+            // Create spiral wormhole effect
+            for (let i = 0; i < spiralLayers; i++) {
+                const layerIntensity = i / spiralLayers;
+                const spiralRadius = layerIntensity * Math.min(width, height) * 0.8;
+                const spiralAngle = time * spiralSpeed * (1 + i * 0.3);
+                const spiralX = width / 2 + Math.cos(spiralAngle) * spiralRadius;
+                const spiralY = height / 2 + Math.sin(spiralAngle) * spiralRadius;
                 
-                ctx.drawImage(
-                    tempCanvas,
-                    x, 0, sliceWidth, height,
-                    x, waveOffset, sliceWidth, height
-                );
+                ctx.save();
+                
+                // Move to spiral center
+                ctx.translate(spiralX, spiralY);
+                
+                // Apply spiral transformations
+                const rotation = time * spiralSpeed * 2 * (1 + i * 0.5);
+                const scale = 0.3 + layerIntensity * 1.2;
+                ctx.rotate(rotation);
+                ctx.scale(scale, scale);
+                
+                // Apply psychedelic wormhole filters
+                const hueShift = (time * 100 + i * 20) % 360;
+                const saturation = 1.8 + layerIntensity * 1.2;
+                const brightness = 0.8 + layerIntensity * 1.5;
+                ctx.filter = `hue-rotate(${hueShift}deg) saturate(${saturation}) brightness(${brightness})`;
+                
+                // Draw with wormhole effect
+                ctx.globalAlpha = 0.3 + layerIntensity * 0.4;
+                
+                // Create spiral distortion by drawing multiple rotated copies
+                for (let spiral = 0; spiral < 3; spiral++) {
+                    ctx.save();
+                    ctx.rotate((spiral * Math.PI * 2) / 3);
+                    ctx.scale(0.8, 1.2); // Stretch vertically for wormhole effect
+                    
+                    ctx.drawImage(tempCanvas, -width / 2, -height / 2, width, height);
+                    ctx.restore();
+                }
+                
+                ctx.restore();
             }
             
+            // Add central wormhole vortex
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(time * spiralSpeed * 3);
+            
+            // Create vortex gradient
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 100);
+            gradient.addColorStop(0, `hsla(${(time * 150) % 360}, 100%, 70%, 0.8)`);
+            gradient.addColorStop(0.5, `hsla(${(time * 150 + 60) % 360}, 100%, 60%, 0.4)`);
+            gradient.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, 100, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+            
+            // Add psychedelic wormhole overlay
+            ctx.save();
+            ctx.globalAlpha = 0.2;
+            ctx.fillStyle = `hsl(${(time * 80) % 360}, 100%, 50%)`;
+            ctx.fillRect(0, 0, width, height);
             ctx.restore();
         }
         
