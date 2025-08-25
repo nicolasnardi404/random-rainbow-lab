@@ -129,24 +129,27 @@ class AmbientSpaceWeaver {
   // Grow new sound patterns organically
   growSoundPatterns() {
     this.growthPatterns.forEach((pattern, index) => {
-      // Natural growth
-      pattern.growth += 0.001 * (1 + pattern.seed * 0.5);
+      // Natural growth with more randomness
+      pattern.growth +=
+        (0.0005 + Math.random() * 0.001) * (1 + pattern.seed * 0.5);
 
-      // Mutation over time
-      pattern.mutation += 0.0005 * (1 + Math.random() * 0.5);
+      // More aggressive mutation over time
+      pattern.mutation +=
+        (0.0003 + Math.random() * 0.001) * (1 + Math.random() * 0.8);
 
-      // Harmony evolution
-      pattern.harmony = Math.sin(pattern.growth * 0.1) * 0.5 + 0.5;
+      // Less predictable harmony evolution
+      pattern.harmony =
+        Math.sin(pattern.growth * (0.05 + Math.random() * 0.1)) * 0.5 + 0.5;
 
       // Continuous growth events for flowing sound
-      if (Math.random() < 0.1) {
+      if (Math.random() < 0.15) {
         // Increased probability for more flow
         this.triggerGrowthEvent(index);
       }
     });
 
-    // Overall growth stage progression
-    this.growthStage += 0.0001;
+    // Overall growth stage progression with randomness
+    this.growthStage += 0.0001 + Math.random() * 0.0002;
     this.growthCycles = Math.floor(this.growthStage * 100);
   }
 
@@ -213,18 +216,55 @@ class AmbientSpaceWeaver {
       if (layer.oscillator) {
         // Ensure continuous sound flow
 
-        const baseFreq = 60 + index * 20;
-        const harmonicFreq = baseFreq * layer.harmonic;
-        const flowAmp = 0.03 + Math.sin(layer.evolution) * 0.02;
+        let baseFreq = 60 + index * 20 + Math.random() * 40;
+        let harmonicFreq = baseFreq * layer.harmonic;
+        let flowAmp =
+          0.02 + Math.random() * 0.08 + Math.sin(layer.evolution * 0.2) * 0.03;
+
+        // Safety check: ensure frequency is valid and within reasonable bounds
+        if (
+          !isFinite(harmonicFreq) ||
+          harmonicFreq < 20 ||
+          harmonicFreq > 20000
+        ) {
+          harmonicFreq = 60 + index * 20 + Math.random() * 40;
+        }
+
+        // Safety check: ensure amplitude is valid and within reasonable bounds
+        if (!isFinite(flowAmp) || flowAmp < 0.01 || flowAmp > 0.5) {
+          flowAmp = 0.02 + Math.random() * 0.08;
+        }
 
         layer.oscillator.freq(harmonicFreq);
         layer.oscillator.amp(flowAmp);
         layer.oscillator.start();
 
-        // Evolve the continuous flow
-        const evolutionFreq =
-          (60 + index * 20) * (1 + Math.sin(layer.evolution * 0.1) * 0.1);
+        // More organic evolution - less predictable
+        const randomVariation = 0.8 + Math.random() * 0.4;
+        let evolutionFreq =
+          (60 + index * 20 + Math.random() * 30) * randomVariation;
+
+        // Safety check for evolution frequency
+        if (
+          !isFinite(evolutionFreq) ||
+          evolutionFreq < 20 ||
+          evolutionFreq > 20000
+        ) {
+          evolutionFreq = 60 + index * 20 + Math.random() * 40;
+        }
+
+        // Organic amplitude variation
+        let organicAmp =
+          0.02 + Math.random() * 0.06 + Math.sin(layer.evolution * 0.15) * 0.02;
+
+        // Safety check for organic amplitude
+        if (!isFinite(organicAmp) || organicAmp < 0.01 || organicAmp > 0.5) {
+          organicAmp = 0.02 + Math.random() * 0.06;
+        }
+
+        // Apply the evolved parameters
         layer.oscillator.freq(evolutionFreq);
+        layer.oscillator.amp(organicAmp);
       }
     });
   }

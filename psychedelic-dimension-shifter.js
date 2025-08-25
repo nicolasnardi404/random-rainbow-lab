@@ -217,27 +217,38 @@ class PsychedelicDimensionShifter {
       const layer = this.dimensionalLayers[i % this.dimensionalLayers.length];
       if (!layer || !layer.oscillator) continue;
 
-      // Fractal frequency calculation
-      const baseFreq = 100 + i * 50;
-      const fractalFreq = baseFreq * Math.pow(1.618, i); // Golden ratio
+      // Organic frequency evolution - less mathematical, more random
+      const baseFreq = 80 + i * 30 + Math.random() * 100;
+      const organicFreq = baseFreq + Math.sin(layer.evolution * 0.1) * 50;
 
-      // Apply cosmic chaos
-      const chaosFreq =
-        fractalFreq + (Math.random() - 0.5) * this.cosmicChaos * 200;
+      // Apply organic chaos - more random variation
+      let chaosFreq =
+        organicFreq + (Math.random() - 0.5) * this.cosmicChaos * 300;
 
-      // Dimensional phase shift
-      const phaseShift = layer.phase + this.dimension * 0.1;
-      const amplitude = 0.05 + Math.sin(phaseShift) * 0.1;
+      // Safety check: ensure frequency is valid and within reasonable bounds
+      if (!isFinite(chaosFreq) || chaosFreq < 20 || chaosFreq > 20000) {
+        chaosFreq = 80 + i * 30 + Math.random() * 100;
+      }
 
-      // Continuous flow - always playing with evolving parameters
+      // Organic amplitude - less predictable
+      let organicAmp =
+        0.03 + Math.random() * 0.15 + Math.sin(layer.evolution * 0.3) * 0.05;
+
+      // Safety check: ensure amplitude is valid and within reasonable bounds
+      if (!isFinite(organicAmp) || organicAmp < 0.01 || organicAmp > 0.5) {
+        organicAmp = 0.03 + Math.random() * 0.15;
+      }
+
+      // Continuous flow with organic evolution
       layer.oscillator.freq(chaosFreq);
-      layer.oscillator.amp(amplitude);
+      layer.oscillator.amp(organicAmp);
 
       layer.oscillator.start();
 
-      // Evolve the layer properties for continuous flow
-      layer.phase += 0.01 + Math.random() * 0.02;
-      layer.dimension += 0.001 + Math.random() * 0.002;
+      // More organic evolution - less predictable patterns
+      layer.phase += 0.005 + Math.random() * 0.03;
+      layer.dimension += 0.0005 + Math.random() * 0.004;
+      layer.evolution += 0.001 + Math.random() * 0.002;
     }
   }
 
