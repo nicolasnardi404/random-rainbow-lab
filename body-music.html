@@ -138,19 +138,7 @@
             min-width: 30px;
         }
         
-        .finger-info {
-            font-size: 11px;
-            color: #ffffff;
-            line-height: 1.4;
-            padding: 10px;
-            background: rgba(0, 255, 255, 0.1);
-            border-radius: 5px;
-            border: 1px solid rgba(0, 255, 255, 0.3);
-        }
-        
-        .finger-info strong {
-            color: #00ffff;
-        }
+
         
         .button-group {
             display: flex;
@@ -208,16 +196,7 @@
             box-shadow: 0 0 20px rgba(255, 69, 0, 0.8);
         }
         
-        .scale-selector {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: 1px solid #ff00ff;
-            border-radius: 5px;
-            padding: 8px;
-            margin: 5px 0;
-            font-size: 12px;
-        }
+
         
         #video-container {
             position: absolute;
@@ -419,16 +398,7 @@
     <div id="music-controls">
         <h3>🎵 Music Controller</h3>
         
-        <div class="control-group">
-            <h4>🎹 Scale & Key</h4>
-            <select id="scale-selector" class="scale-selector">
-                <option value="major">C Major</option>
-                <option value="minor">A Minor</option>
-                <option value="pentatonic">C Pentatonic</option>
-                <option value="blues">C Blues</option>
-                <option value="chromatic">Chromatic</option>
-            </select>
-        </div>
+
         
         <div class="control-group">
             <h4>🎚️ Volume & Effects</h4>
@@ -448,47 +418,7 @@
             </div>
         </div>
         
-        <div class="control-group">
-            <h4>🎛️ Sound Types</h4>
-            <div class="button-group">
-                <button id="synth-btn" class="music-btn active">Synth</button>
-                <button id="piano-btn" class="music-btn">Piano</button>
-                <button id="bass-btn" class="music-btn">Bass</button>
-                <button id="drums-btn" class="music-btn">Drums</button>
-            </div>
-        </div>
-        
-        <div class="control-group">
-            <h4>🎯 Hand Controls</h4>
-            <div class="button-group">
-                <button id="melody-mode" class="music-btn active">Melody</button>
-                <button id="chord-mode" class="music-btn">Chords</button>
-                <button id="rhythm-mode" class="music-btn">Rhythm</button>
-            </div>
-            
-            <div class="control-group">
-                <h4>👆 Noise Machine</h4>
-                <div class="finger-info">
-                    <strong>Right Hand (Melodic Noise):</strong><br>
-                    • <strong>Thumb:</strong> White noise<br>
-                    • <strong>Index:</strong> Harmonic noise<br>
-                    • <strong>Middle:</strong> Metallic noise<br>
-                    • <strong>Ring:</strong> Wind noise<br>
-                    • <strong>Pinky:</strong> Digital glitch<br><br>
-                    
-                    <strong>Left Hand (Rhythmic Noise):</strong><br>
-                    • <strong>Thumb:</strong> Bass rumble<br>
-                    • <strong>Index:</strong> Click/pop<br>
-                    • <strong>Middle:</strong> Hi-hat<br>
-                    • <strong>Ring:</strong> Snare<br>
-                    • <strong>Pinky:</strong> Cymbal<br><br>
-                    
-                    <strong>Hand Movement Modulation:</strong><br>
-                    • <strong>Right Hand:</strong> X=pitch bend, Y=vibrato<br>
-                    • <strong>Left Hand:</strong> X=delay time, Y=reverb
-                </div>
-            </div>
-        </div>
+
         
         <div class="control-group">
             <h4>🎼 Recording</h4>
@@ -506,6 +436,16 @@
                 <button id="test-note-btn" class="music-btn">🎵 Test Note</button>
                 <button id="clear-audio-btn" class="music-btn">🧹 Clear Audio</button>
             </div>
+        </div>
+        
+        <div class="control-group">
+            <h4>🌍 Musical Organisms</h4>
+            <div class="button-group">
+                <button id="classic-mode" class="music-btn active">🎵 Classic</button>
+                <button id="psychedelic-mode" class="music-btn">🌈 Psychedelic</button>
+                <button id="ambient-mode" class="music-btn">🌌 Ambient</button>
+            </div>
+
         </div>
     </div>
     
@@ -646,6 +586,9 @@
     </div>
     
     <script src="body-music.js"></script>
+    <script src="psychedelic-dimension-shifter.js"></script>
+    <script src="ambient-space-weaver.js"></script>
+    <script src="organism-controller.js"></script>
     
     <script>
         // Video Background with Distortion Effects
@@ -860,7 +803,6 @@
                 
                 // Update time for effects animation
                 time += distortionSpeed * 0.01;
-                console.log('Time updated to:', time, 'distortionType:', distortionType);
                 
                 requestAnimationFrame(animate);
             }
@@ -895,19 +837,14 @@
                 // Apply distortion effects
                 switch (distortionType) {
                     case 'larsen':
-                        console.log('Applying Larsen effect...');
                         applyLarsenEffect(ctx, width, height);
                         break;
                     case 'glitch':
-                        console.log('Applying Glitch effect...');
                         applyGlitchEffect(ctx, width, height);
                         break;
                     case 'wave':
-                        console.log('Applying Wave effect...');
                         applyWaveEffect(ctx, width, height);
                         break;
-                    default:
-                        console.log('No distortion effect selected, using:', distortionType);
                 }
                 
                 // Add status indicator
@@ -1038,14 +975,12 @@
         
         // Larsen Effect (psychedelic infinite feedback loop with disintegration)
         function applyLarsenEffect(ctx, width, height) {
-            console.log('Larsen effect called with intensity:', distortionIntensity, 'speed:', distortionSpeed, 'time:', time);
             
             const intensity = distortionIntensity * 0.08;
             const feedbackLayers = Math.floor(intensity * 20) + 5;
             const rotationSpeed = distortionSpeed * 0.15;
             
-            console.log('Larsen effect parameters:', { intensity, feedbackLayers, rotationSpeed });
-            
+         
             // Create a temporary canvas to store the current video frame
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
@@ -1129,7 +1064,6 @@
             
             ctx.restore();
             
-            console.log('Larsen effect completed');
         }
         
         // INFINITE MIRROR DIMENSION Effect (psychedelic kaleidoscope)
@@ -1534,6 +1468,76 @@
                     backgroundCanvas.height = window.innerHeight;
                 }
             });
+            
+            // Organism control buttons
+            const classicModeBtn = document.getElementById('classic-mode');
+            if (classicModeBtn) {
+                classicModeBtn.addEventListener('click', function() {
+                    if (window.ecosystem) {
+                        window.ecosystem.switchOrganism('classic');
+                        // Update button states
+                        document.querySelectorAll('#classic-mode, #psychedelic-mode, #ambient-mode').forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
+            }
+            
+            const psychedelicModeBtn = document.getElementById('psychedelic-mode');
+            if (psychedelicModeBtn) {
+                psychedelicModeBtn.addEventListener('click', function() {
+                    if (window.ecosystem) {
+                        window.ecosystem.switchOrganism('psychedelic');
+                        // Update button states
+                        document.querySelectorAll('#classic-mode, #psychedelic-mode, #ambient-mode').forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
+            }
+            
+            const ambientModeBtn = document.getElementById('ambient-mode');
+            if (ambientModeBtn) {
+                ambientModeBtn.addEventListener('click', function() {
+                    if (window.ecosystem) {
+                        window.ecosystem.switchOrganism('ambient');
+                        // Update button states
+                        document.querySelectorAll('#classic-mode, #psychedelic-mode, #ambient-mode').forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
+            }
+            
+
+            
+            // Test buttons for organisms
+            const testPsychedelicBtn = document.getElementById('test-psychedelic');
+            if (testPsychedelicBtn) {
+                testPsychedelicBtn.addEventListener('click', function() {
+                    if (window.ecosystem && window.ecosystem.organisms.psychedelic) {
+                        console.log('🧪 Testing Psychedelic organism...');
+                        const org = window.ecosystem.organisms.psychedelic;
+                        if (org.triggerDimensionalRift) {
+                            org.triggerDimensionalRift();
+                        }
+                    } else {
+                        console.error('❌ Psychedelic organism not available');
+                    }
+                });
+            }
+            
+            const testAmbientBtn = document.getElementById('test-ambient');
+            if (testAmbientBtn) {
+                testAmbientBtn.addEventListener('click', function() {
+                    if (window.ecosystem && window.ecosystem.organisms.ambient) {
+                        console.log('🧪 Testing Ambient organism...');
+                        const org = window.ecosystem.organisms.ambient;
+                        if (org.triggerRapidGrowth) {
+                            org.triggerRapidGrowth();
+                        }
+                    } else {
+                        console.error('❌ Ambient organism not available');
+                    }
+                });
+            }
         });
     </script>
 </body>

@@ -587,7 +587,14 @@ function processHandLandmarks(results) {
         }
 
         const isRightHand = index === 0; // Assume first hand is right
-        playNoteFromHand(hand, isRightHand);
+
+        // Route to organism controller if available
+        if (window.ecosystem && window.ecosystem.processHandInput) {
+          window.ecosystem.processHandInput(hand, isRightHand);
+        } else {
+          // Fallback to classic system
+          playNoteFromHand(hand, isRightHand);
+        }
       } catch (handError) {
         console.error(`Error processing hand ${index}:`, handError);
       }
