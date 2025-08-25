@@ -58,8 +58,22 @@ function initAudio() {
     bass = new p5.Oscillator("square");
     bass.amp(0.3);
 
+    // Create delay and reverb effects
+    delay = new p5.Delay();
+    reverb = new p5.Reverb();
+
+    // Set initial delay and reverb settings
+    delay.delayTime(0.5);
+    delay.feedback(0.3);
+    reverb.set(0.5, 0.8, 0.5);
+
     // Set initial values
     updateAudioSettings();
+
+    // Initialize display values
+    setTimeout(() => {
+      updateAudioSettings();
+    }, 100);
 
     console.log("p5.sound audio initialized successfully");
     console.log("Instruments created:", { synth, piano, bass });
@@ -88,11 +102,59 @@ function updateAudioSettings() {
   if (piano) piano.amp(masterVolume * 0.4);
   if (bass) bass.amp(masterVolume * 0.3);
 
+  // Update delay and reverb effects
+  if (delay) {
+    delay.delayTime(delayAmount * 0.8); // 0 to 0.8 seconds
+    delay.feedback(delayAmount * 0.6); // 0 to 0.6 feedback
+  }
+
+  if (reverb) {
+    reverb.set(reverbAmount * 0.8, reverbAmount * 0.9, reverbAmount * 0.5);
+  }
+
   // Update status display
   const volumeElement = document.getElementById("current-volume");
   if (volumeElement) {
     volumeElement.textContent = Math.round(masterVolume * 100) + "%";
   }
+
+  // Update effects display
+  const reverbElement = document.getElementById("current-reverb");
+  if (reverbElement) {
+    reverbElement.textContent = Math.round(reverbAmount * 100) + "%";
+  }
+
+  const delayElement = document.getElementById("current-delay");
+  if (delayElement) {
+    delayElement.textContent = Math.round(delayAmount * 100) + "%";
+  }
+}
+
+// Clear all background audio effects
+function clearBackgroundAudio() {
+  // Stop all oscillators that might be running in background
+  if (synth && synth.isPlaying()) {
+    synth.stop();
+  }
+  if (piano && piano.isPlaying()) {
+    piano.stop();
+  }
+  if (bass && bass.isPlaying()) {
+    bass.stop();
+  }
+
+  // Clear any lingering oscillators from finger effects
+  window.activeOscillators = window.activeOscillators || [];
+  window.activeOscillators.forEach((osc) => {
+    if (osc && osc.stop) {
+      try {
+        osc.stop();
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+  });
+  window.activeOscillators = [];
 }
 
 // Play a note based on hand position
@@ -141,8 +203,11 @@ function playNoteFromHand(hand, isRightHand) {
       return;
     }
 
-    // Process individual finger movements
+    // Process individual finger movements for noise
     processIndividualFingers(hand, isRightHand);
+
+    // Process hand movements for modulation
+    processHandModulation(hand, isRightHand);
 
     // Calculate pinch distance between thumb tip and index tip
     const pinchDistance = Math.sqrt(
@@ -203,7 +268,7 @@ function playNoteFromHand(hand, isRightHand) {
   }
 }
 
-// Process individual finger movements for different effects
+// Process individual finger movements for different noise types
 function processIndividualFingers(hand, isRightHand) {
   try {
     const wrist = hand[0];
@@ -213,173 +278,216 @@ function processIndividualFingers(hand, isRightHand) {
     const ringTip = hand[16];
     const pinkyTip = hand[20];
 
-    // Calculate finger positions relative to wrist
-    const thumbRelative = {
-      x: thumbTip.x - wrist.x,
-      y: thumbTip.y - wrist.y,
-    };
-    const indexRelative = {
-      x: indexTip.x - wrist.x,
-      y: indexTip.y - wrist.y,
-    };
-    const middleRelative = {
-      x: middleTip.x - wrist.x,
-      y: middleTip.y - wrist.y,
-    };
-    const ringRelative = {
-      x: ringTip.x - wrist.x,
-      y: ringTip.y - wrist.y,
-    };
-    const pinkyRelative = {
-      x: pinkyTip.x - wrist.x,
-      y: pinkyTip.y - wrist.y,
-    };
+    // We'll check finger extension directly instead of relative positions
 
-    // THUMB: Add audio distortion based on position
+    // Check if fingers are actually extended (not just present)
+    // We'll use the distance between finger tip and finger base to detect extension
+
+    // THUMB: Check if thumb is extended away from palm
+    const thumbBase = hand[3];
+    const thumbExtension = Math.sqrt(
+      Math.pow(thumbTip.x - thumbBase.x, 2) +
+        Math.pow(thumbTip.y - thumbBase.y, 2)
+    );
+
     if (isRightHand) {
-      // Right hand thumb adds pitch distortion
-      const thumbDistance = Math.sqrt(
-        thumbRelative.x * thumbRelative.x + thumbRelative.y * thumbRelative.y
-      );
-      if (thumbDistance > 0.1) {
-        // Add pitch bend based on thumb position
-        const pitchBend = (thumbRelative.x + 0.5) * 2 - 1; // -1 to 1
-        if (synth) {
-          synth.freq(baseFreq * Math.pow(2, pitchBend * 0.5));
-        }
-        if (piano) {
-          piano.freq(baseFreq * Math.pow(2, pitchBend * 0.5));
-        }
-        if (bass) {
-          bass.freq(baseFreq * Math.pow(2, pitchBend * 0.5));
-        }
+      // Right hand thumb creates white noise when extended
+      if (thumbExtension > 0.03) {
+        // Must be significantly extended
+        const noise = new p5.Oscillator("sawtooth");
+        noise.amp(thumbExtension * 0.4);
+        noise.freq(100 + thumbExtension * 400);
+        noise.start();
+        setTimeout(() => noise.stop(), 200);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(noise);
       }
     } else {
-      // Left hand thumb adds frequency modulation
-      const thumbDistance = Math.sqrt(
-        thumbRelative.x * thumbRelative.x + thumbRelative.y * thumbRelative.y
-      );
-      if (thumbDistance > 0.05) {
-        const modFreq = thumbDistance * 10; // 0-10 Hz modulation
-        if (synth) {
-          // Add vibrato effect
-          const vibrato = Math.sin(Date.now() * 0.001 * modFreq) * 0.1;
-          synth.freq(baseFreq * (1 + vibrato));
-        }
+      // Left hand thumb creates bass rumble when extended
+      if (thumbExtension > 0.03) {
+        const rumble = new p5.Oscillator("square");
+        rumble.amp(thumbExtension * 0.4);
+        rumble.freq(40 + thumbExtension * 100);
+        rumble.start();
+        setTimeout(() => rumble.stop(), 400);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(rumble);
       }
     }
 
-    // INDEX FINGER: Add audio effects based on position
-    const indexDistance = Math.sqrt(
-      indexRelative.x * indexRelative.x + indexRelative.y * indexRelative.y
+    // INDEX FINGER: Check if index is extended
+    const indexBase = hand[6];
+    const indexExtension = Math.sqrt(
+      Math.pow(indexTip.x - indexBase.x, 2) +
+        Math.pow(indexTip.y - indexBase.y, 2)
     );
-    if (indexDistance > 0.1) {
+
+    if (indexExtension > 0.03) {
       if (isRightHand) {
-        // Right hand index adds harmonic distortion
-        const harmonicAmount = Math.min(1, indexDistance * 3);
-        if (synth) {
-          // Add overtones with random timing
-          const overtone = new p5.Oscillator("sine");
-          overtone.amp(harmonicAmount * 0.3);
-          overtone.freq(baseFreq * (2 + Math.random() * 0.5)); // Slightly random harmonic
-          overtone.start();
-          setTimeout(() => overtone.stop(), 150 + Math.random() * 100); // Random duration
-        }
+        // Right hand index creates harmonic noise when extended
+        const harmonic = new p5.Oscillator("triangle");
+        harmonic.amp(indexExtension * 0.3);
+        harmonic.freq(200 + indexExtension * 600);
+        harmonic.start();
+        setTimeout(() => harmonic.stop(), 250);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(harmonic);
       } else {
-        // Left hand index adds random noise bursts
-        if (Math.random() < 0.3) {
-          // Only 30% chance to avoid constant noise
-          const noise = new p5.Oscillator("sawtooth");
-          noise.amp(indexDistance * 0.2);
-          noise.freq(200 + Math.random() * 400);
-          noise.start();
-          setTimeout(() => noise.stop(), 50 + Math.random() * 100);
-        }
+        // Left hand index creates click/pop noise when extended
+        const click = new p5.Oscillator("sawtooth");
+        click.amp(indexExtension * 0.3);
+        click.freq(500 + indexExtension * 1000);
+        click.start();
+        setTimeout(() => click.stop(), 80);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(click);
       }
     }
 
-    // MIDDLE FINGER: Add audio modulation effects
-    const middleDistance = Math.sqrt(
-      middleRelative.x * middleRelative.x + middleRelative.y * middleRelative.y
+    // MIDDLE FINGER: Check if middle is extended
+    const middleBase = hand[10];
+    const middleExtension = Math.sqrt(
+      Math.pow(middleTip.x - middleBase.x, 2) +
+        Math.pow(middleTip.y - middleBase.y, 2)
     );
-    if (middleDistance > 0.1) {
+
+    if (middleExtension > 0.03) {
       if (isRightHand) {
-        // Right hand middle adds amplitude modulation
-        const ampMod = Math.sin(Date.now() * 0.002) * middleDistance * 0.5;
-        if (synth) {
-          synth.amp(Math.max(0.1, 0.5 + ampMod));
-        }
-        if (piano) {
-          piano.amp(Math.max(0.1, 0.4 + ampMod));
-        }
-        if (bass) {
-          bass.amp(Math.max(0.1, 0.3 + ampMod));
-        }
+        // Right hand middle creates metallic noise when extended
+        const metallic = new p5.Oscillator("square");
+        metallic.amp(middleExtension * 0.25);
+        metallic.freq(300 + middleExtension * 800);
+        metallic.start();
+        setTimeout(() => metallic.stop(), 180);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(metallic);
       } else {
-        // Left hand middle adds delay effect
-        const delayAmount = Math.min(1, middleDistance * 2);
-        if (synth && synth.isPlaying()) {
-          setTimeout(() => {
-            if (synth) {
-              const delay = new p5.Oscillator("sine");
-              delay.amp(delayAmount * 0.3);
-              delay.freq(synth.freq());
-              delay.start();
-              setTimeout(() => delay.stop(), 400);
-            }
-          }, 200);
-        }
+        // Left hand middle creates hi-hat noise when extended
+        const hihat = new p5.Oscillator("triangle");
+        hihat.amp(middleExtension * 0.2);
+        hihat.freq(1000 + middleExtension * 2000);
+        hihat.start();
+        setTimeout(() => hihat.stop(), 100);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(hihat);
       }
     }
 
-    // RING FINGER: Add audio filter effects
-    const ringDistance = Math.sqrt(
-      ringRelative.x * ringRelative.x + ringRelative.y * ringRelative.y
+    // RING FINGER: Check if ring is extended
+    const ringBase = hand[14];
+    const ringExtension = Math.sqrt(
+      Math.pow(ringTip.x - ringBase.x, 2) + Math.pow(ringTip.y - ringBase.y, 2)
     );
-    if (ringDistance > 0.1) {
+
+    if (ringExtension > 0.03) {
       if (isRightHand) {
-        // Right hand ring adds filter sweep
-        const filterFreq = ringDistance * 2000; // 0-2000 Hz filter
-        if (synth) {
-          // Simulate low-pass filter effect
-          const filterAmount = Math.sin(Date.now() * 0.001) * 0.3;
-          synth.amp(Math.max(0.1, 0.5 - filterAmount));
-        }
+        // Right hand ring creates wind noise when extended
+        const wind = new p5.Oscillator("sine");
+        wind.amp(ringExtension * 0.15);
+        wind.freq(50 + ringExtension * 200);
+        wind.start();
+        setTimeout(() => wind.stop(), 300);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(wind);
       } else {
-        // Left hand ring adds random frequency modulation
-        const modAmount = ringDistance * 0.5;
-        if (synth && synth.isPlaying()) {
-          const randomFreq = Math.sin(Date.now() * 0.001) * modAmount;
-          synth.freq(baseFreq * (1 + randomFreq));
-        }
+        // Left hand ring creates snare noise when extended
+        const snare = new p5.Oscillator("sawtooth");
+        snare.amp(ringExtension * 0.35);
+        snare.freq(200 + ringExtension * 400);
+        snare.start();
+        setTimeout(() => snare.stop(), 150);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(snare);
       }
     }
 
-    // PINKY FINGER: Add special audio effects
-    const pinkyDistance = Math.sqrt(
-      pinkyRelative.x * pinkyRelative.x + pinkyRelative.y * pinkyRelative.y
+    // PINKY FINGER: Check if pinky is extended
+    const pinkyBase = hand[18];
+    const pinkyExtension = Math.sqrt(
+      Math.pow(pinkyTip.x - pinkyBase.x, 2) +
+        Math.pow(pinkyTip.y - pinkyBase.y, 2)
     );
-    if (pinkyDistance > 0.1) {
+
+    if (pinkyExtension > 0.03) {
       if (isRightHand) {
-        // Right hand pinky adds frequency sweep
-        const sweepFreq = pinkyDistance * 1000; // 0-1000 Hz sweep
-        if (synth) {
-          const sweep = Math.sin(Date.now() * 0.001 * sweepFreq) * 0.2;
-          synth.freq(baseFreq * (1 + sweep));
-        }
+        // Right hand pinky creates digital glitch noise when extended
+        const glitch = new p5.Oscillator("sawtooth");
+        glitch.amp(pinkyExtension * 0.35);
+        glitch.freq(800 + pinkyExtension * 1200);
+        glitch.start();
+        setTimeout(() => glitch.stop(), 120);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(glitch);
       } else {
-        // Left hand pinky adds noise burst
-        if (pinkyDistance > 0.15) {
-          const noise = new p5.Oscillator("sawtooth");
-          noise.amp(0.2);
-          noise.freq(100 + Math.random() * 200);
-          noise.start();
-          setTimeout(() => noise.stop(), 100);
-        }
+        // Left hand pinky creates cymbal noise when extended
+        const cymbal = new p5.Oscillator("sine");
+        cymbal.amp(pinkyExtension * 0.25);
+        cymbal.freq(1500 + pinkyExtension * 3000);
+        cymbal.start();
+        setTimeout(() => cymbal.stop(), 200);
+
+        window.activeOscillators = window.activeOscillators || [];
+        window.activeOscillators.push(cymbal);
       }
     }
   } catch (error) {
     console.error("Error processing individual fingers:", error);
+  }
+}
+
+// Process hand movements for modulation effects
+function processHandModulation(hand, isRightHand) {
+  try {
+    const wrist = hand[0];
+    const palm = hand[9]; // Middle finger base
+
+    if (!wrist || !palm) return;
+
+    // Calculate hand movement patterns
+    const handX = wrist.x;
+    const handY = wrist.y;
+    const palmX = palm.x;
+    const palmY = palm.y;
+
+    if (isRightHand) {
+      // Right hand controls melodic modulation
+      // X position controls pitch bend
+      const pitchBend = (handX - 0.5) * 2; // -1 to 1
+      if (synth && synth.isPlaying()) {
+        synth.freq(baseFreq * Math.pow(2, pitchBend * 0.5));
+      }
+
+      // Y position controls vibrato
+      const vibratoAmount = (handY - 0.5) * 2;
+      if (vibratoAmount > 0.1 && synth && synth.isPlaying()) {
+        const vibrato = Math.sin(Date.now() * 0.003) * vibratoAmount * 0.2;
+        synth.freq(baseFreq * (1 + vibrato));
+      }
+    } else {
+      // Left hand controls rhythmic modulation
+      // X position controls delay time
+      const delayTime = handX * 0.8; // 0 to 0.8 seconds
+      if (delay && delayAmount > 0.1) {
+        delay.delayTime(delayTime);
+      }
+
+      // Y position controls reverb amount
+      const reverbAmount = handY;
+      if (reverb && reverbAmount > 0.1) {
+        reverb.set(reverbAmount * 0.8, reverbAmount * 0.9, reverbAmount * 0.5);
+      }
+    }
+  } catch (error) {
+    console.error("Error processing hand modulation:", error);
   }
 }
 
@@ -413,6 +521,15 @@ function playNote(frequency, duration) {
       // Set frequency and start the oscillator
       instrument.freq(frequency);
       instrument.start();
+
+      // Apply delay and reverb effects if they exist
+      if (delay && delayAmount > 0.1) {
+        delay.process(instrument, delayAmount * 0.8);
+      }
+
+      if (reverb && reverbAmount > 0.1) {
+        reverb.process(instrument, reverbAmount * 0.8);
+      }
 
       // Stop after the specified duration
       setTimeout(() => {
@@ -689,6 +806,16 @@ function setupUIControls() {
           "Audio not initialized. Please wait for the application to fully load."
         );
       }
+    });
+  }
+
+  // Set up clear audio button
+  const clearAudioBtn = document.getElementById("clear-audio-btn");
+  if (clearAudioBtn) {
+    clearAudioBtn.addEventListener("click", function () {
+      console.log("Clear audio button clicked");
+      clearBackgroundAudio();
+      console.log("Background audio cleared");
     });
   }
 }

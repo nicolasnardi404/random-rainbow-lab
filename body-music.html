@@ -129,6 +129,29 @@
             box-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
         }
         
+        .current-value {
+            display: inline-block;
+            margin-left: 10px;
+            color: #00ffff;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 30px;
+        }
+        
+        .finger-info {
+            font-size: 11px;
+            color: #ffffff;
+            line-height: 1.4;
+            padding: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 5px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .finger-info strong {
+            color: #00ffff;
+        }
+        
         .button-group {
             display: flex;
             gap: 8px;
@@ -416,10 +439,12 @@
             <div class="slider-container">
                 <label for="reverb-amount">Reverb</label>
                 <input type="range" id="reverb-amount" class="slider" min="0" max="100" value="30">
+                <span id="current-reverb" class="current-value">30%</span>
             </div>
             <div class="slider-container">
                 <label for="delay-amount">Delay</label>
                 <input type="range" id="delay-amount" class="slider" min="0" max="100" value="20">
+                <span id="current-delay" class="current-value">20%</span>
             </div>
         </div>
         
@@ -440,6 +465,29 @@
                 <button id="chord-mode" class="music-btn">Chords</button>
                 <button id="rhythm-mode" class="music-btn">Rhythm</button>
             </div>
+            
+            <div class="control-group">
+                <h4>👆 Noise Machine</h4>
+                <div class="finger-info">
+                    <strong>Right Hand (Melodic Noise):</strong><br>
+                    • <strong>Thumb:</strong> White noise<br>
+                    • <strong>Index:</strong> Harmonic noise<br>
+                    • <strong>Middle:</strong> Metallic noise<br>
+                    • <strong>Ring:</strong> Wind noise<br>
+                    • <strong>Pinky:</strong> Digital glitch<br><br>
+                    
+                    <strong>Left Hand (Rhythmic Noise):</strong><br>
+                    • <strong>Thumb:</strong> Bass rumble<br>
+                    • <strong>Index:</strong> Click/pop<br>
+                    • <strong>Middle:</strong> Hi-hat<br>
+                    • <strong>Ring:</strong> Snare<br>
+                    • <strong>Pinky:</strong> Cymbal<br><br>
+                    
+                    <strong>Hand Movement Modulation:</strong><br>
+                    • <strong>Right Hand:</strong> X=pitch bend, Y=vibrato<br>
+                    • <strong>Left Hand:</strong> X=delay time, Y=reverb
+                </div>
+            </div>
         </div>
         
         <div class="control-group">
@@ -456,6 +504,7 @@
             <div class="button-group">
                 <button id="test-audio-btn" class="music-btn">🔊 Test Sound</button>
                 <button id="test-note-btn" class="music-btn">🎵 Test Note</button>
+                <button id="clear-audio-btn" class="music-btn">🧹 Clear Audio</button>
             </div>
         </div>
     </div>
