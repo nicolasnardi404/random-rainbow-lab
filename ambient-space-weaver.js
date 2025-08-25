@@ -99,6 +99,9 @@ class AmbientSpaceWeaver {
     // Breathe life into the space
     this.breatheLife();
 
+    // Maintain continuous drone flow
+    this.maintainContinuousFlow();
+
     // Continue the growth cycle
     requestAnimationFrame(() => this.startOrganicGrowth());
   }
@@ -135,8 +138,9 @@ class AmbientSpaceWeaver {
       // Harmony evolution
       pattern.harmony = Math.sin(pattern.growth * 0.1) * 0.5 + 0.5;
 
-      // Trigger new growth events
-      if (Math.random() < 0.01) {
+      // Continuous growth events for flowing sound
+      if (Math.random() < 0.1) {
+        // Increased probability for more flow
         this.triggerGrowthEvent(index);
       }
     });
@@ -203,6 +207,28 @@ class AmbientSpaceWeaver {
     });
   }
 
+  // Maintain continuous drone flow
+  maintainContinuousFlow() {
+    this.organicLayers.forEach((layer, index) => {
+      if (layer.oscillator) {
+        // Ensure continuous sound flow
+
+        const baseFreq = 60 + index * 20;
+        const harmonicFreq = baseFreq * layer.harmonic;
+        const flowAmp = 0.03 + Math.sin(layer.evolution) * 0.02;
+
+        layer.oscillator.freq(harmonicFreq);
+        layer.oscillator.amp(flowAmp);
+        layer.oscillator.start();
+
+        // Evolve the continuous flow
+        const evolutionFreq =
+          (60 + index * 20) * (1 + Math.sin(layer.evolution * 0.1) * 0.1);
+        layer.oscillator.freq(evolutionFreq);
+      }
+    });
+  }
+
   // Process hand input for organic control
   processHandInput(hand, isRightHand) {
     if (!this.active) return;
@@ -211,16 +237,43 @@ class AmbientSpaceWeaver {
       const wrist = hand[0];
       const thumbTip = hand[4];
       const indexTip = hand[8];
+      const middleTip = hand[12];
+      const ringTip = hand[16];
+      const pinkyTip = hand[20];
 
       if (!wrist || !thumbTip || !indexTip) return;
 
       // Right hand controls growth and evolution
       if (isRightHand) {
-        // Wrist Y controls growth rate
+        // Wrist Y controls growth rate continuously
         this.evolutionRate = 0.0005 + wrist.y * 0.002;
 
-        // Wrist X controls harmonic field
+        // Wrist X controls harmonic field continuously
         this.harmonicField = wrist.x;
+
+        // Thumb controls evolution speed
+        const thumbY = thumbTip.y;
+        this.evolutionRate = 0.0001 + (1 - thumbY) * 0.003;
+
+        // Index controls harmonic complexity
+        const indexY = indexTip.y;
+        this.organicLayers.forEach((layer, i) => {
+          layer.harmonic = 1 + i * 0.5 + indexY * 2;
+        });
+
+        // Middle finger controls breathing rate
+        const middleY = middleTip.y;
+        this.breathingRate = 0.005 + middleY * 0.08;
+
+        // Ring finger controls space depth
+        const ringY = ringTip.y;
+        this.spaceDepth = ringY;
+
+        // Pinky controls growth pattern mutation
+        const pinkyY = pinkyTip.y;
+        this.growthPatterns.forEach((pattern) => {
+          pattern.mutation += 0.001 + pinkyY * 0.01;
+        });
 
         // Pinch to trigger rapid growth
         const pinchDistance = Math.sqrt(
@@ -235,6 +288,17 @@ class AmbientSpaceWeaver {
         // Left hand controls breathing and space
         this.breathingRate = 0.01 + wrist.y * 0.04;
         this.spaceDepth = wrist.x;
+
+        // Left hand fingers control individual organic layers
+        const fingers = [thumbTip, indexTip, middleTip, ringTip, pinkyTip];
+        fingers.forEach((finger, i) => {
+          if (i < this.organicLayers.length) {
+            const layer = this.organicLayers[i];
+            layer.breathing += (finger.y - 0.5) * 0.1;
+            layer.space = finger.x;
+            layer.growth += (finger.y - 0.5) * 0.01;
+          }
+        });
       }
     } catch (error) {
       console.error("Error processing hand input for ambient space:", error);

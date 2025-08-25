@@ -429,14 +429,7 @@
             </div>
         </div>
         
-        <div class="control-group">
-            <h4>🔊 Audio Test</h4>
-            <div class="button-group">
-                <button id="test-audio-btn" class="music-btn">🔊 Test Sound</button>
-                <button id="test-note-btn" class="music-btn">🎵 Test Note</button>
-                <button id="clear-audio-btn" class="music-btn">🧹 Clear Audio</button>
-            </div>
-        </div>
+
         
         <div class="control-group">
             <h4>🌍 Musical Organisms</h4>
@@ -497,15 +490,7 @@
             </div>
         </div>
         
-        <div class="control-group">
-            <h4>🐛 Debug</h4>
-            <div class="button-group">
-                <button id="test-video-draw" class="music-btn">Test Video</button>
-                <button id="test-temp-canvas" class="music-btn">Temp Canvas</button>
-                <button id="video-info" class="music-btn">Video Info</button>
-                <button id="toggle-effects" class="music-btn">Toggle Effects</button>
-            </div>
-        </div>
+
     </div>
     
     <div id="video-container">
@@ -514,32 +499,7 @@
         <button id="video-toggle">Hide</button>
     </div>
     
-    <div id="status-indicator" class="status-indicator">
-        <div class="status-item">
-            <span>Hands:</span>
-            <span id="hands-count" class="status-value">0</span>
-        </div>
-        <div class="status-item">
-            <span>Mode:</span>
-            <span id="current-mode" class="status-value">Melody</span>
-        </div>
-        <div class="status-item">
-            <span>Scale:</span>
-            <span id="current-scale" class="status-value">C Major</span>
-        </div>
-        <div class="status-item">
-            <span>Volume:</span>
-            <span id="current-volume" class="status-value">70%</span>
-        </div>
-        <div class="status-item">
-            <span>Video:</span>
-            <span id="video-status" class="status-value">Loading...</span>
-        </div>
-        <div class="status-item">
-            <span>Canvas:</span>
-            <span id="canvas-status" class="status-value">Initializing...</span>
-        </div>
-    </div>
+   
     
     <div id="instructions" class="collapsed">
         <button id="toggle-instructions">Show</button>
@@ -1369,97 +1329,11 @@
                 });
             }
             
-            // Debug buttons
-            const testVideoBtn = document.getElementById('test-video-draw');
-            if (testVideoBtn) {
-                testVideoBtn.addEventListener('click', function() {
-                    if (videoElement && videoElement.readyState >= 2) {
-                        // Log video properties for debugging
-                        console.log('Video element:', videoElement);
-                        console.log('Video readyState:', videoElement.readyState);
-                        console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-                        console.log('Video currentTime:', videoElement.currentTime);
-                        console.log('Video paused:', videoElement.paused);
-                        console.log('Video ended:', videoElement.ended);
-                        
-                        drawSimpleVideo();
-                    } else {
-                        console.log('Video not ready for drawing');
-                    }
-                });
-            }
 
-            const testTempCanvasBtn = document.getElementById('test-temp-canvas');
-            if (testTempCanvasBtn) {
-                testTempCanvasBtn.addEventListener('click', function() {
-                    if (videoElement && videoElement.readyState >= 2) {
-                        // drawSimpleVideo(); // This function is now redundant
-                    } else {
-                        console.log('Video not ready for temp canvas drawing');
-                    }
-                });
-            }
             
-            const videoInfoBtn = document.getElementById('video-info');
-            if (videoInfoBtn) {
-                videoInfoBtn.addEventListener('click', function() {
-                    if (videoElement && videoElement.readyState >= 2) {
-                        console.log('Video Info:');
-                        console.log('Video readyState:', videoElement.readyState);
-                        console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-                        console.log('Video currentTime:', videoElement.currentTime);
-                        console.log('Video paused:', videoElement.paused);
-                        console.log('Video ended:', videoElement.ended);
-                        console.log('Video duration:', videoElement.duration);
-                        console.log('Video playbackRate:', videoElement.playbackRate);
-                        console.log('Video volume:', videoElement.volume);
-                        console.log('Video muted:', videoElement.muted);
-                        console.log('Video error:', videoElement.error);
-                    } else {
-                        console.log('Video not ready for info');
-                    }
-                });
-            }
+
             
-            const toggleEffectsBtn = document.getElementById('toggle-effects');
-            if (toggleEffectsBtn) {
-                toggleEffectsBtn.addEventListener('click', function() {
-                    const currentMode = this.getAttribute('data-mode') || 'effects';
-                    if (currentMode === 'effects') {
-                        this.setAttribute('data-mode', 'direct');
-                        this.textContent = 'Direct Video';
-                    } else {
-                        this.setAttribute('data-mode', 'effects');
-                        this.textContent = 'Toggle Effects';
-                    }
-                });
-            }
-            
-            // Audio test button
-            const testAudioBtn = document.getElementById('test-audio-btn');
-            if (testAudioBtn) {
-                testAudioBtn.addEventListener('click', function() {
-                    // Test basic audio
-                    if (window.synth) {
-                        window.synth.freq(261.63); // Middle C
-                        window.synth.start();
-                        setTimeout(() => window.synth.stop(), 200);
-                    }
-                });
-            }
-            
-            // Test note button
-            const testNoteBtn = document.getElementById('test-note-btn');
-            if (testNoteBtn) {
-                testNoteBtn.addEventListener('click', function() {
-                    // Test the playNote function directly
-                    if (window.playNote) {
-                        window.playNote(261.63, 1); // Middle C, 1 second
-                    } else {
-                        console.log('playNote function not available');
-                    }
-                });
-            }
+
             
             // Handle window resize
             window.addEventListener('resize', function() {
@@ -1508,36 +1382,7 @@
             
 
             
-            // Test buttons for organisms
-            const testPsychedelicBtn = document.getElementById('test-psychedelic');
-            if (testPsychedelicBtn) {
-                testPsychedelicBtn.addEventListener('click', function() {
-                    if (window.ecosystem && window.ecosystem.organisms.psychedelic) {
-                        console.log('🧪 Testing Psychedelic organism...');
-                        const org = window.ecosystem.organisms.psychedelic;
-                        if (org.triggerDimensionalRift) {
-                            org.triggerDimensionalRift();
-                        }
-                    } else {
-                        console.error('❌ Psychedelic organism not available');
-                    }
-                });
-            }
-            
-            const testAmbientBtn = document.getElementById('test-ambient');
-            if (testAmbientBtn) {
-                testAmbientBtn.addEventListener('click', function() {
-                    if (window.ecosystem && window.ecosystem.organisms.ambient) {
-                        console.log('🧪 Testing Ambient organism...');
-                        const org = window.ecosystem.organisms.ambient;
-                        if (org.triggerRapidGrowth) {
-                            org.triggerRapidGrowth();
-                        }
-                    } else {
-                        console.error('❌ Ambient organism not available');
-                    }
-                });
-            }
+
         });
     </script>
 </body>

@@ -77,19 +77,6 @@ function initAudio() {
 
     console.log("p5.sound audio initialized successfully");
     console.log("Instruments created:", { synth, piano, bass });
-
-    // Test audio with a test beep
-    setTimeout(() => {
-      console.log("Testing audio with a test beep...");
-      if (synth) {
-        synth.freq(261.63); // Middle C
-        synth.start();
-        setTimeout(() => synth.stop(), 200);
-        console.log("Test beep played successfully");
-      } else {
-        console.error("Synth not available for test");
-      }
-    }, 1000);
   } catch (error) {
     console.error("Error initializing audio:", error);
   }
@@ -793,25 +780,6 @@ function setupUIControls() {
       if (recordBtn) {
         recordBtn.textContent = "⏺ Record";
         recordBtn.style.background = "linear-gradient(45deg, #ff00ff, #00ffff)";
-      }
-    });
-  }
-
-  // Set up test audio button
-  const testAudioBtn = document.getElementById("test-audio-btn");
-  if (testAudioBtn) {
-    testAudioBtn.addEventListener("click", function () {
-      console.log("Test audio button clicked");
-      if (synth) {
-        console.log("Playing test sound with synth");
-        synth.freq(261.63); // Middle C
-        synth.start();
-        setTimeout(() => synth.stop(), 500);
-      } else {
-        console.error("Synth not available for testing");
-        alert(
-          "Audio not initialized. Please wait for the application to fully load."
-        );
       }
     });
   }

@@ -229,20 +229,15 @@ class PsychedelicDimensionShifter {
       const phaseShift = layer.phase + this.dimension * 0.1;
       const amplitude = 0.05 + Math.sin(phaseShift) * 0.1;
 
-      // Only play if probability allows
-      if (Math.random() < 0.3) {
-        layer.oscillator.freq(chaosFreq);
-        layer.oscillator.amp(amplitude);
+      // Continuous flow - always playing with evolving parameters
+      layer.oscillator.freq(chaosFreq);
+      layer.oscillator.amp(amplitude);
 
-        layer.oscillator.start();
+      layer.oscillator.start();
 
-        // Stop after a short time
-        setTimeout(() => {
-          if (layer.oscillator) {
-            layer.oscillator.stop();
-          }
-        }, 100 + Math.random() * 200);
-      }
+      // Evolve the layer properties for continuous flow
+      layer.phase += 0.01 + Math.random() * 0.02;
+      layer.dimension += 0.001 + Math.random() * 0.002;
     }
   }
 
@@ -254,17 +249,51 @@ class PsychedelicDimensionShifter {
       const wrist = hand[0];
       const thumbTip = hand[4];
       const indexTip = hand[8];
+      const middleTip = hand[12];
+      const ringTip = hand[16];
+      const pinkyTip = hand[20];
 
       if (!wrist || !thumbTip || !indexTip) return;
 
       // Right hand controls dimension shifting
       if (isRightHand) {
-        // Thumb position controls fractal depth
+        // Wrist Y controls fractal depth continuously
         const fractalControl = 1 - wrist.y;
         this.fractalDepth = Math.floor(1 + fractalControl * 8);
 
-        // Index position controls cosmic chaos
+        // Wrist X controls cosmic chaos continuously
         this.cosmicChaos = wrist.x;
+
+        // Thumb controls dimensional shift speed
+        const thumbY = thumbTip.y;
+        this.dimensionShiftSpeed = 0.01 + (1 - thumbY) * 0.5;
+
+        // Index controls chaos field intensity
+        const indexY = indexTip.y;
+        this.chaosField = 0.1 + (1 - indexY) * 0.8;
+
+        // Middle finger controls quantum state evolution
+        const middleY = middleTip.y;
+        this.quantumStates.forEach((state, i) => {
+          state.probability = 0.1 + middleY * 0.8;
+        });
+
+        // Ring finger controls dimensional layer count
+        const ringY = ringTip.y;
+        const activeLayers = Math.floor(1 + ringY * 7);
+        this.dimensionalLayers.forEach((layer, i) => {
+          if (i < activeLayers) {
+            layer.oscillator.amp(0.1 + Math.random() * 0.2);
+          } else {
+            layer.oscillator.amp(0);
+          }
+        });
+
+        // Pinky controls phase evolution speed
+        const pinkyY = pinkyTip.y;
+        this.dimensionalLayers.forEach((layer) => {
+          layer.phase += 0.01 + pinkyY * 0.05;
+        });
 
         // Pinch to trigger dimensional rift
         const pinchDistance = Math.sqrt(
@@ -276,9 +305,19 @@ class PsychedelicDimensionShifter {
           this.triggerDimensionalRift();
         }
       } else {
-        // Left hand controls quantum field
+        // Left hand controls quantum field and resonance
         this.chaosField = wrist.x;
         this.dimensionShiftSpeed = 0.05 + wrist.y * 0.3;
+
+        // Left hand fingers control individual quantum states
+        const fingers = [thumbTip, indexTip, middleTip, ringTip, pinkyTip];
+        fingers.forEach((finger, i) => {
+          if (i < this.quantumStates.length) {
+            const state = this.quantumStates[i];
+            state.superposition += (finger.y - 0.5) * 0.1;
+            state.entanglement = finger.x;
+          }
+        });
       }
     } catch (error) {
       console.error(
