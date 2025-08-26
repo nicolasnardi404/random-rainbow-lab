@@ -698,28 +698,45 @@ function playNote(frequency, duration, instrumentType) {
   try {
     let instrument;
 
+    // Make sure we have a valid audio context
+    const p5AudioContext = p5.prototype.getAudioContext();
+    if (!p5AudioContext) {
+      console.error("No p5 audio context available");
+      return false;
+    }
+
+    // Get or create the instrument
     switch (instrumentType) {
       case "synth":
+        if (!synth) {
+          synth = new p5.Oscillator("sine");
+          synth.amp(0.5);
+        }
         instrument = synth;
         break;
       case "piano":
+        if (!piano) {
+          piano = new p5.Oscillator("triangle");
+          piano.amp(0.4);
+        }
         instrument = piano;
         break;
       case "bass":
+        if (!bass) {
+          bass = new p5.Oscillator("square");
+          bass.amp(0.3);
+        }
         instrument = bass;
         break;
       default:
+        if (!synth) {
+          synth = new p5.Oscillator("sine");
+          synth.amp(0.5);
+        }
         instrument = synth;
     }
 
     if (instrument) {
-      // Get p5's audio context
-      const p5AudioContext = p5.prototype.getAudioContext();
-      if (!p5AudioContext) {
-        console.error("No p5 audio context available");
-        return false;
-      }
-
       // Create a gain node for this note
       const noteGain = p5AudioContext.createGain();
       noteGain.gain.value = 1.0;
@@ -741,21 +758,46 @@ function playNote(frequency, duration, instrumentType) {
         instrument.connect(noteGain);
       }
 
-      // Set frequency and play
-      instrument.freq(frequency);
-      instrument.play();
-
-      // Stop after duration
-      setTimeout(() => {
-        instrument.stop();
-        // Clean up connections
-        if (noteGain) {
-          noteGain.disconnect();
+      try {
+        // Set frequency and start the oscillator
+        if (typeof instrument.freq === "function") {
+          instrument.freq(frequency);
+        } else if (typeof instrument.frequency === "function") {
+          instrument.frequency.value = frequency;
         }
-      }, duration * 1000);
 
-      console.log(`🎵 Note played successfully with ${instrumentType}`);
-      return true;
+        // Start the oscillator
+        if (typeof instrument.start === "function") {
+          instrument.start();
+        } else if (typeof instrument.play === "function") {
+          instrument.play();
+        } else {
+          throw new Error("Instrument has no start/play method");
+        }
+
+        // Stop after duration and clean up
+        setTimeout(() => {
+          try {
+            if (typeof instrument.stop === "function") {
+              instrument.stop();
+            } else if (typeof instrument.pause === "function") {
+              instrument.pause();
+            }
+            // Clean up connections
+            if (noteGain) {
+              noteGain.disconnect();
+            }
+          } catch (error) {
+            console.error("Error stopping instrument:", error);
+          }
+        }, duration * 1000);
+
+        console.log(`🎵 Note played successfully with ${instrumentType}`);
+        return true;
+      } catch (error) {
+        console.error(`Error playing note with ${instrumentType}:`, error);
+        return false;
+      }
     } else {
       console.error(`Instrument ${instrumentType} not available`);
       return false;
