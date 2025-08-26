@@ -13,10 +13,12 @@ let hands = [];
 let lastNoteTime = 0;
 let noteCooldown = 100; // milliseconds between notes
 
-// Recording variables
-let recordedNotes = [];
+// Browser audio recording system
 let isRecording = false;
 let isPlaying = false;
+let mediaRecorder = null;
+let audioChunks = [];
+let recordedAudioBlob = null;
 
 // Scale definitions
 const scales = {
@@ -30,42 +32,60 @@ const scales = {
 // Base frequencies for different octaves
 const baseFreq = 261.63; // Middle C
 
-// Initialize p5.sound
+// Initialize p5.sound and Web Audio API recording
 function initAudio() {
   try {
-    console.log("Initializing p5.sound audio...");
+    console.log("Initializing audio system...");
 
-    // Wait for p5.sound to be ready
-    if (typeof p5 === "undefined") {
-      console.error("p5.js not loaded");
+    // Check for p5.sound
+    if (typeof p5 === "undefined" || typeof p5.Amplitude === "undefined") {
+      console.error("p5.sound not available");
       return;
     }
 
-    if (typeof p5.Amplitude === "undefined") {
-      console.error("p5.sound not loaded");
-      return;
-    }
+    // Create audio context for recording
+    const audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
+    window.mainAudioContext = audioContext;
+
+    // Create a main gain node for recording
+    const mainGain = audioContext.createGain();
+    mainGain.gain.value = 1.0;
+    mainGain.connect(audioContext.destination);
+    window.mainGain = mainGain;
 
     // Create instruments using p5.sound
     synth = new p5.Oscillator("sine");
     synth.amp(0.5);
+    synth.disconnect(); // Disconnect from p5's output
+    synth.connect(mainGain); // Connect to our gain node
 
-    // Create a simple piano-like sound
     piano = new p5.Oscillator("triangle");
     piano.amp(0.4);
+    piano.disconnect();
+    piano.connect(mainGain);
 
-    // Create bass sound
     bass = new p5.Oscillator("square");
     bass.amp(0.3);
+    bass.disconnect();
+    bass.connect(mainGain);
 
-    // Create delay and reverb effects
+    // Create effects
     delay = new p5.Delay();
     reverb = new p5.Reverb();
 
-    // Set initial delay and reverb settings
+    // Configure effects
     delay.delayTime(0.5);
     delay.feedback(0.3);
+    delay.disconnect();
+    delay.connect(mainGain);
+
     reverb.set(0.5, 0.8, 0.5);
+    reverb.disconnect();
+    reverb.connect(mainGain);
+
+    // Initialize the recorder
+    initSoundRecorder();
 
     // Set initial values
     updateAudioSettings();
@@ -73,12 +93,208 @@ function initAudio() {
     // Initialize display values
     setTimeout(() => {
       updateAudioSettings();
+      updateRecordingButtonStates();
     }, 100);
 
-    console.log("p5.sound audio initialized successfully");
-    console.log("Instruments created:", { synth, piano, bass });
+    console.log("Audio system initialized successfully");
+    console.log("Instruments created and connected to recording system");
   } catch (error) {
-    console.error("Error initializing audio:", error);
+    console.error("Error in initAudio:", error);
+  }
+}
+
+// Initialize browser audio recording
+async function initSoundRecorder() {
+  try {
+    console.log("Setting up audio recording...");
+
+    // Get p5's audio context
+    const audioContext = p5.prototype.getAudioContext();
+    if (!audioContext) {
+      throw new Error("No audio context available");
+    }
+
+    // Create a gain node to mix all audio
+    const recordingGain = audioContext.createGain();
+    recordingGain.gain.value = 1.0;
+
+    // Connect p5's master output to our recording gain
+    if (p5.prototype.soundOut && p5.prototype.soundOut.output) {
+      p5.prototype.soundOut.output.connect(recordingGain);
+    }
+
+    // Create a MediaStreamDestination to capture the audio
+    const destination = audioContext.createMediaStreamDestination();
+    recordingGain.connect(destination);
+
+    // Also connect to the main output so we can hear it
+    recordingGain.connect(audioContext.destination);
+
+    // Store the recording system globally
+    window.recordingSystem = {
+      gain: recordingGain,
+      destination: destination,
+    };
+
+    // First check what MIME types are supported
+    const mimeTypes = [
+      "audio/webm",
+      "audio/webm;codecs=opus",
+      "audio/ogg;codecs=opus",
+      "audio/mp4",
+    ];
+
+    let selectedMimeType = "";
+    for (const type of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        selectedMimeType = type;
+        console.log("Found supported MIME type:", type);
+        break;
+      }
+    }
+
+    if (!selectedMimeType) {
+      throw new Error("No supported MIME types found");
+    }
+
+    // Create MediaRecorder with the audio stream from our destination
+    mediaRecorder = new MediaRecorder(destination.stream, {
+      mimeType: selectedMimeType,
+      audioBitsPerSecond: 128000,
+    });
+
+    // Set up data collection
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      recordedAudioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      console.log("Recording completed, size:", recordedAudioBlob.size);
+      updateRecordingStatus("✅ Recording complete!", "success");
+      updateRecordingButtonStates();
+    };
+
+    console.log("System audio capture ready");
+    updateRecordingStatus("Ready to record system audio", "info");
+    updateRecordingButtonStates();
+
+    console.log("Recording system initialized with direct audio capture");
+    updateRecordingStatus("Ready to record", "info");
+    updateRecordingButtonStates();
+  } catch (error) {
+    console.error("Error initializing audio recording:", error);
+    updateRecordingStatus("❌ Audio recording failed", "error");
+    updateRecordingButtonStates();
+  }
+}
+
+// Connect all audio sources to the recorder
+function connectAllAudioToRecorder(audioContext, destination) {
+  try {
+    console.log("🎵 Connecting audio sources to recorder...");
+
+    // Store the destination globally so we can access it from anywhere
+    window.recordingDestination = destination;
+
+    // Create a gain node to mix all audio before recording
+    const recordingGain = audioContext.createGain();
+    recordingGain.connect(destination);
+    window.recordingGain = recordingGain;
+
+    console.log("🎵 Recording gain node created and connected");
+
+    // We'll connect instruments dynamically when they play
+  } catch (error) {
+    console.error("Error connecting audio sources:", error);
+  }
+}
+
+// Function to connect an instrument to the recorder when it plays
+function connectInstrumentToRecorder(instrument, instrumentName) {
+  try {
+    // Get p5's audio context and master output
+    const p5AudioContext = p5.prototype.getAudioContext();
+    const p5SoundOut = p5.prototype.soundOut;
+
+    if (!p5AudioContext || !p5SoundOut) {
+      console.error("No p5 audio system available");
+      return;
+    }
+
+    // Create or get our recording system
+    if (!window.recordingSystem) {
+      // Create a gain node for recording
+      const recordingGain = p5AudioContext.createGain();
+      recordingGain.gain.value = 1.0;
+
+      // Create media stream destination
+      const destination = p5AudioContext.createMediaStreamDestination();
+
+      // Connect recording gain to both p5's master output and recording destination
+      recordingGain.connect(p5SoundOut.input);
+      recordingGain.connect(destination);
+
+      // Initialize MediaRecorder
+      const recorder = new MediaRecorder(destination.stream);
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+      recorder.onstop = () => {
+        recordedAudioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        console.log("Recording completed, size:", recordedAudioBlob.size);
+        updateRecordingStatus("✅ Recording complete!", "success");
+        updateRecordingButtonStates();
+      };
+
+      // Store our recording system
+      window.recordingSystem = {
+        gain: recordingGain,
+        destination: destination,
+        recorder: recorder,
+      };
+
+      // Update global mediaRecorder reference
+      mediaRecorder = recorder;
+    }
+
+    if (instrument) {
+      try {
+        // For p5.js oscillators and effects
+        if (instrument.output) {
+          // Disconnect from current output
+          instrument.output.disconnect();
+          // Connect to our recording gain
+          instrument.output.connect(window.recordingSystem.gain);
+          console.log(`🎵 ${instrumentName} connected to recorder`);
+        }
+        // For raw Web Audio nodes
+        else if (instrument.connect) {
+          instrument.disconnect();
+          instrument.connect(window.recordingSystem.gain);
+          console.log(`🎵 ${instrumentName} connected to recorder`);
+        }
+      } catch (connectError) {
+        console.error(`Error connecting ${instrumentName}:`, connectError);
+        // Try alternate connection method for p5.sound objects
+        try {
+          instrument.disconnect();
+          instrument.connect(window.recordingSystem.gain);
+          console.log(`🎵 ${instrumentName} connected via alternate method`);
+        } catch (altError) {
+          console.error(
+            `Alternate connection failed for ${instrumentName}:`,
+            altError
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`Could not connect ${instrumentName} to recorder:`, error);
   }
 }
 
@@ -120,14 +336,26 @@ function updateAudioSettings() {
 // Clear all background audio effects
 function clearBackgroundAudio() {
   // Stop all oscillators that might be running in background
-  if (synth && synth.isPlaying()) {
-    synth.stop();
+  if (synth) {
+    try {
+      synth.stop();
+    } catch (e) {
+      // Ignore errors if oscillator is not playing
+    }
   }
-  if (piano && piano.isPlaying()) {
-    piano.stop();
+  if (piano) {
+    try {
+      piano.stop();
+    } catch (e) {
+      // Ignore errors if oscillator is not playing
+    }
   }
-  if (bass && bass.isPlaying()) {
-    bass.stop();
+  if (bass) {
+    try {
+      bass.stop();
+    } catch (e) {
+      // Ignore errors if oscillator is not playing
+    }
   }
 
   // Clear any lingering oscillators from finger effects
@@ -226,7 +454,7 @@ function playNoteFromHand(hand, isRightHand) {
         duration = durationMap[Math.min(durationIndex, durationMap.length - 1)];
 
         // Play the note
-        playNote(frequency, duration);
+        playNote(frequency, duration, "synth");
       } else {
         // Left hand controls volume and effects
         const volumeY = wrist.y;
@@ -449,14 +677,17 @@ function processHandModulation(hand, isRightHand) {
       // Right hand controls melodic modulation
       // X position controls pitch bend
       const pitchBend = (handX - 0.5) * 2; // -1 to 1
-      if (synth && synth.isPlaying()) {
+      if (synth) {
+        // Update synth frequency for modulation
+        const baseFreq = 261.63; // Middle C
         synth.freq(baseFreq * Math.pow(2, pitchBend * 0.5));
       }
 
       // Y position controls vibrato
       const vibratoAmount = (handY - 0.5) * 2;
-      if (vibratoAmount > 0.1 && synth && synth.isPlaying()) {
+      if (vibratoAmount > 0.1 && synth) {
         const vibrato = Math.sin(Date.now() * 0.003) * vibratoAmount * 0.2;
+        const baseFreq = 261.63; // Middle C
         synth.freq(baseFreq * (1 + vibrato));
       }
     } else {
@@ -478,15 +709,12 @@ function processHandModulation(hand, isRightHand) {
   }
 }
 
-// Play a note with the current instrument using p5.sound
-function playNote(frequency, duration) {
+// Play a note with the specified instrument
+function playNote(frequency, duration, instrumentType) {
   try {
-    console.log(
-      `🎵 Playing note: ${frequency}Hz, duration: ${duration}s, instrument: ${currentInstrument}`
-    );
-
     let instrument;
-    switch (currentInstrument) {
+
+    switch (instrumentType) {
       case "synth":
         instrument = synth;
         break;
@@ -496,39 +724,61 @@ function playNote(frequency, duration) {
       case "bass":
         instrument = bass;
         break;
-      case "drums":
-        playDrumPattern(frequency);
-        return;
       default:
-        console.error("Unknown instrument:", currentInstrument);
-        return;
+        instrument = synth;
     }
 
     if (instrument) {
-      // Set frequency and start the oscillator
+      // Get p5's audio context
+      const p5AudioContext = p5.prototype.getAudioContext();
+      if (!p5AudioContext) {
+        console.error("No p5 audio context available");
+        return false;
+      }
+
+      // Create a gain node for this note
+      const noteGain = p5AudioContext.createGain();
+      noteGain.gain.value = 1.0;
+
+      // Connect to our recording system if available
+      if (window.recordingSystem && window.recordingSystem.gain) {
+        noteGain.connect(window.recordingSystem.gain);
+      } else {
+        // If no recording system, connect directly to output
+        noteGain.connect(p5AudioContext.destination);
+      }
+
+      // Connect the instrument through our gain node
+      if (instrument.output) {
+        instrument.output.disconnect();
+        instrument.output.connect(noteGain);
+      } else if (instrument.connect) {
+        instrument.disconnect();
+        instrument.connect(noteGain);
+      }
+
+      // Set frequency and play
       instrument.freq(frequency);
-      instrument.start();
+      instrument.play();
 
-      // Apply delay and reverb effects if they exist
-      if (delay && delayAmount > 0.1) {
-        delay.process(instrument, delayAmount * 0.8);
-      }
-
-      if (reverb && reverbAmount > 0.1) {
-        reverb.process(instrument, reverbAmount * 0.8);
-      }
-
-      // Stop after the specified duration
+      // Stop after duration
       setTimeout(() => {
         instrument.stop();
+        // Clean up connections
+        if (noteGain) {
+          noteGain.disconnect();
+        }
       }, duration * 1000);
 
-      console.log(`🎵 Note played successfully with ${currentInstrument}`);
+      console.log(`🎵 Note played successfully with ${instrumentType}`);
+      return true;
     } else {
-      console.error(`${currentInstrument} not initialized`);
+      console.error(`Instrument ${instrumentType} not available`);
+      return false;
     }
   } catch (error) {
-    console.error("Error in playNote:", error);
+    console.error(`Error playing note with ${instrumentType}:`, error);
+    return false;
   }
 }
 
@@ -745,41 +995,101 @@ function setupUIControls() {
       });
     });
 
-  // Recording buttons
+  // Recording control buttons
   const recordBtn = document.getElementById("record-btn");
+  const stopBtn = document.getElementById("stop-btn");
+  const playBtn = document.getElementById("play-btn");
+  const downloadBtn = document.getElementById("download-btn");
+  const clearBtn = document.getElementById("clear-btn");
+
+  // Record button
   if (recordBtn) {
-    recordBtn.addEventListener("click", function () {
-      if (!isRecording) {
-        isRecording = true;
-        recordedNotes = [];
-        this.textContent = "⏹ Stop";
-        this.style.background = "linear-gradient(45deg, #ff0000, #ff6666)";
-      } else {
-        isRecording = false;
-        this.textContent = "⏺ Record";
-        this.style.background = "linear-gradient(45deg, #ff00ff, #00ffff)";
+    recordBtn.addEventListener("click", async function () {
+      console.log("Record button clicked");
+      try {
+        // Initialize recorder if not already done
+        if (!mediaRecorder) {
+          console.log("Initializing recorder...");
+          await initSoundRecorder();
+        }
+
+        if (!isRecording && mediaRecorder) {
+          console.log("Starting recording...");
+          startAudioRecording();
+        } else {
+          console.log("Cannot start recording:", {
+            isRecording,
+            mediaRecorder: !!mediaRecorder,
+          });
+        }
+      } catch (error) {
+        console.error("Error in record button click:", error);
+        updateRecordingStatus("❌ Recording failed: " + error.message, "error");
       }
     });
   }
 
-  const playBtn = document.getElementById("play-btn");
+  // Stop button
+  if (stopBtn) {
+    stopBtn.addEventListener("click", function () {
+      if (isRecording) {
+        stopAudioRecording();
+      }
+    });
+  }
+
+  // Play button
   if (playBtn) {
     playBtn.addEventListener("click", function () {
-      if (recordedNotes.length > 0 && !isPlaying) {
-        playRecordedNotes();
+      if (recordedAudioBlob) {
+        playRecordedAudio();
+      } else {
+        console.log("No recording available to play");
       }
     });
   }
 
-  const clearBtn = document.getElementById("clear-btn");
+  // Download button
+  if (downloadBtn) {
+    downloadBtn.addEventListener("click", function () {
+      if (recordedAudioBlob) {
+        downloadRecordedAudio();
+      } else {
+        console.log("No recording available to download");
+      }
+    });
+  }
+
+  // Clear button
   if (clearBtn) {
     clearBtn.addEventListener("click", function () {
-      recordedNotes = [];
-      isRecording = false;
-      const recordBtn = document.getElementById("record-btn");
-      if (recordBtn) {
-        recordBtn.textContent = "⏺ Record";
-        recordBtn.style.background = "linear-gradient(45deg, #ff00ff, #00ffff)";
+      clearRecordedAudio();
+    });
+  }
+
+  // Retry recorder button
+  const retryRecorderBtn = document.getElementById("retry-recorder-btn");
+  if (retryRecorderBtn) {
+    retryRecorderBtn.addEventListener("click", function () {
+      console.log("Manual retry of recorder initialization...");
+      updateRecordingStatus("🔄 Retrying recorder...", "info");
+      initSoundRecorder();
+    });
+  }
+
+  // Test recording button
+  const testRecordingBtn = document.getElementById("test-recording-btn");
+  if (testRecordingBtn) {
+    testRecordingBtn.addEventListener("click", function () {
+      console.log("Testing recording system...");
+      if (window.recordingDestination) {
+        testAudioRouting(
+          new (window.AudioContext || window.webkitAudioContext)(),
+          window.recordingDestination
+        );
+        updateRecordingStatus("🎵 Test tone played", "info");
+      } else {
+        updateRecordingStatus("❌ Recording system not ready", "error");
       }
     });
   }
@@ -793,6 +1103,19 @@ function setupUIControls() {
       console.log("Background audio cleared");
     });
   }
+}
+
+// Set up keyboard shortcuts for recording
+function setupRecordingShortcuts() {
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && isRecording) {
+      console.log("🚨 Escape key pressed, force stopping recording...");
+      event.preventDefault();
+      stopAudioRecording();
+    }
+  });
+
+  console.log("🎵 Recording shortcuts set up (Press ESC to force stop)");
 }
 
 // Set up video toggle
@@ -1149,31 +1472,258 @@ function processVideoFrame(hands, videoElement) {
   processFrame();
 }
 
-// Play recorded notes
-function playRecordedNotes() {
-  if (recordedNotes.length === 0) return;
+// Start recording
+async function startAudioRecording() {
+  try {
+    console.log("Starting audio recording...");
 
-  isPlaying = true;
+    // Check if we need to initialize the recorder
+    if (!mediaRecorder) {
+      console.log("No mediaRecorder, initializing...");
+      await initSoundRecorder();
+    }
+
+    if (!mediaRecorder) {
+      throw new Error("Failed to initialize media recorder");
+    }
+
+    if (mediaRecorder.state === "recording") {
+      console.log("Already recording");
+      return false;
+    }
+
+    // Clear previous recording data
+    audioChunks = [];
+    recordedAudioBlob = null;
+
+    // Start recording with 100ms chunks for better responsiveness
+    console.log("Starting MediaRecorder...");
+    mediaRecorder.start(100);
+    isRecording = true;
+
+    console.log("🎙️ Recording started successfully");
+
+    // Update UI
+    const recordBtn = document.getElementById("record-btn");
+    const stopBtn = document.getElementById("stop-btn");
+    if (recordBtn) recordBtn.style.display = "none";
+    if (stopBtn) stopBtn.style.display = "inline-block";
+
+    updateRecordingStatus("🔴 Recording in progress...", "recording");
+    updateRecordingButtonStates();
+
+    // Add test tone to verify recording is working
+    const audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    gainNode.gain.value = 0.1; // Low volume
+    oscillator.frequency.value = 440; // A4 note
+
+    oscillator.start();
+    setTimeout(() => oscillator.stop(), 200); // Short beep
+
+    return true;
+  } catch (error) {
+    console.error("Error starting recording:", error);
+    updateRecordingStatus("❌ Recording failed: " + error.message, "error");
+    return false;
+  }
+}
+
+// Stop recording
+function stopAudioRecording() {
+  try {
+    if (!mediaRecorder || mediaRecorder.state !== "recording") {
+      console.error("No active recording to stop");
+      return false;
+    }
+
+    console.log("Stopping recording...");
+    mediaRecorder.stop();
+    isRecording = false;
+
+    // Update UI
+    const recordBtn = document.getElementById("record-btn");
+    const stopBtn = document.getElementById("stop-btn");
+    if (recordBtn) recordBtn.style.display = "inline-block";
+    if (stopBtn) stopBtn.style.display = "none";
+
+    return true;
+  } catch (error) {
+    console.error("Error stopping recording:", error);
+    return false;
+  }
+}
+
+// Play recorded audio
+function playRecordedAudio() {
+  try {
+    if (!recordedAudioBlob) {
+      console.error("No recording available");
+      return false;
+    }
+
+    const audioUrl = URL.createObjectURL(recordedAudioBlob);
+    const audio = new Audio(audioUrl);
+
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      isPlaying = false;
+      const playBtn = document.getElementById("play-btn");
+      if (playBtn) playBtn.textContent = "▶️ Play";
+    };
+
+    audio.play();
+    isPlaying = true;
+    const playBtn = document.getElementById("play-btn");
+    if (playBtn) playBtn.textContent = "⏸ Pause";
+
+    return true;
+  } catch (error) {
+    console.error("Error playing recording:", error);
+    return false;
+  }
+}
+
+// Download recorded audio
+function downloadRecordedAudio() {
+  try {
+    if (!recordedAudioBlob) {
+      console.error("No recorded audio available for download");
+      updateRecordingStatus("❌ No recording available", "error");
+      return false;
+    }
+
+    // Determine file extension based on MIME type
+    let fileExtension = "webm";
+    if (recordedAudioBlob.type.includes("mp4")) {
+      fileExtension = "mp4";
+    } else if (recordedAudioBlob.type.includes("ogg")) {
+      fileExtension = "ogg";
+    }
+
+    // Create download link
+    const url = URL.createObjectURL(recordedAudioBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `body-music-${new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/:/g, "-")}.${fileExtension}`;
+
+    console.log(`Saving audio as ${fileExtension} file...`);
+
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Cleanup
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+
+    console.log("🎵 Audio file saved");
+    updateRecordingStatus("✅ Audio file saved!", "success");
+    return true;
+  } catch (error) {
+    console.error("Error saving audio:", error);
+    updateRecordingStatus("❌ Save failed: " + error.message, "error");
+    return false;
+  }
+}
+
+// Clear recorded audio
+function clearRecordedAudio() {
+  try {
+    audioChunks = [];
+    recordedAudioBlob = null;
+    isRecording = false;
+    isPlaying = false;
+
+    // Update UI
+    const playBtn = document.getElementById("play-btn");
+    if (playBtn) {
+      playBtn.textContent = "▶️ Play";
+      playBtn.disabled = true;
+    }
+
+    updateRecordingStatus("Ready to record", "info");
+    updateRecordingButtonStates();
+
+    return true;
+  } catch (error) {
+    console.error("Error clearing recording:", error);
+    return false;
+  }
+}
+
+// Check if recorder is ready
+function isRecorderReady() {
+  return mediaRecorder && typeof MediaRecorder !== "undefined";
+}
+
+// Update recording status display
+function updateRecordingStatus(message, type = "info") {
+  const statusElement = document.getElementById("recording-status");
+  if (statusElement) {
+    statusElement.textContent = message;
+
+    // Set color based on type
+    switch (type) {
+      case "recording":
+        statusElement.style.color = "#ff0000";
+        break;
+      case "success":
+        statusElement.style.color = "#00ff00";
+        break;
+      case "error":
+        statusElement.style.color = "#ff6666";
+        break;
+      default:
+        statusElement.style.color = "#00ffff";
+    }
+  }
+}
+
+// Update button states based on recording status
+function updateRecordingButtonStates() {
+  const recordBtn = document.getElementById("record-btn");
   const playBtn = document.getElementById("play-btn");
-  if (playBtn) {
-    playBtn.textContent = "⏸ Pause";
+  const downloadBtn = document.getElementById("download-btn");
+  const clearBtn = document.getElementById("clear-btn");
+
+  if (recordBtn) {
+    // Enable record button if we can record
+    recordBtn.disabled = isRecording;
+
+    // Update button text based on recording capability
+    if (isRecorderReady()) {
+      recordBtn.textContent = "⏺ Record Audio";
+    } else {
+      recordBtn.textContent = "⏺ Record";
+    }
   }
 
-  let currentTime = 0;
-  recordedNotes.forEach((note, index) => {
-    setTimeout(() => {
-      playNote(note.frequency, note.duration);
+  if (playBtn) {
+    // Enable play button if we have recorded content
+    const hasAudioRecording = recordedAudioBlob && isRecorderReady();
+    playBtn.disabled = !hasAudioRecording;
+  }
 
-      if (index === recordedNotes.length - 1) {
-        isPlaying = false;
-        if (playBtn) {
-          playBtn.textContent = "▶️ Play";
-        }
-      }
-    }, currentTime);
+  if (downloadBtn) {
+    // Only enable download for audio recordings
+    downloadBtn.disabled = !recordedAudioBlob || !isRecorderReady();
+  }
 
-    currentTime += note.duration * 1000;
-  });
+  if (clearBtn) {
+    // Enable clear if we have any recorded content
+    const hasAudioRecording = recordedAudioBlob && isRecorderReady();
+    clearBtn.disabled = !hasAudioRecording;
+  }
 }
 
 // Initialize the application
@@ -1225,7 +1775,53 @@ function startApplication() {
   );
   initHandTracking();
 
+  // Set up recording shortcuts
+  setupRecordingShortcuts();
+
   console.log("Body music application initialized successfully");
+}
+
+// Create WAV blob from audio buffer
+function createWavBlob(audioBuffer, sampleRate) {
+  const numChannels = 1; // Mono
+  const bitsPerSample = 16;
+  const bytesPerSample = bitsPerSample / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = audioBuffer.length * bytesPerSample;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  // WAV header
+  writeString(view, 0, "RIFF"); // RIFF identifier
+  view.setUint32(4, 36 + dataSize, true); // File size
+  writeString(view, 8, "WAVE"); // WAVE identifier
+  writeString(view, 12, "fmt "); // Format chunk identifier
+  view.setUint32(16, 16, true); // Format chunk length
+  view.setUint16(20, 1, true); // Sample format (1 = PCM)
+  view.setUint16(22, numChannels, true); // Number of channels
+  view.setUint32(24, sampleRate, true); // Sample rate
+  view.setUint32(28, byteRate, true); // Byte rate
+  view.setUint16(32, blockAlign, true); // Block align
+  view.setUint16(34, bitsPerSample, true); // Bits per sample
+  writeString(view, 36, "data"); // Data chunk identifier
+  view.setUint32(40, dataSize, true); // Data chunk length
+
+  // Audio data
+  const offset = 44;
+  for (let i = 0; i < audioBuffer.length; i++) {
+    const sample = Math.max(-1, Math.min(1, audioBuffer[i]));
+    view.setInt16(offset + i * bytesPerSample, sample * 0x7fff, true);
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+// Helper function to write strings to DataView
+function writeString(view, offset, string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
 }
 
 // Handle window resize for canvas
@@ -1239,3 +1835,28 @@ window.addEventListener("resize", function () {
     handCanvas.height = videoRect.height;
   }
 });
+
+// Test audio routing with a simple tone
+function testAudioRouting(audioContext, destination) {
+  try {
+    console.log("🎵 Testing audio routing with test tone...");
+
+    // Create a simple oscillator for testing
+    const testOsc = audioContext.createOscillator();
+    const testGain = audioContext.createGain();
+
+    testOsc.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+    testGain.gain.setValueAtTime(0.1, audioContext.currentTime); // Low volume
+
+    testOsc.connect(testGain);
+    testGain.connect(destination);
+
+    // Play test tone for 1 second
+    testOsc.start(audioContext.currentTime);
+    testOsc.stop(audioContext.currentTime + 1);
+
+    console.log("🎵 Test tone played through recording system");
+  } catch (error) {
+    console.error("Error testing audio routing:", error);
+  }
+}
