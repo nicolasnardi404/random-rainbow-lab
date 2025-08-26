@@ -136,26 +136,8 @@ async function initSoundRecorder() {
       destination: destination,
     };
 
-    // First check what MIME types are supported
-    const mimeTypes = [
-      "audio/webm",
-      "audio/webm;codecs=opus",
-      "audio/ogg;codecs=opus",
-      "audio/mp4",
-    ];
-
-    let selectedMimeType = "";
-    for (const type of mimeTypes) {
-      if (MediaRecorder.isTypeSupported(type)) {
-        selectedMimeType = type;
-        console.log("Found supported MIME type:", type);
-        break;
-      }
-    }
-
-    if (!selectedMimeType) {
-      throw new Error("No supported MIME types found");
-    }
+    // Use WebM for recording (best quality)
+    const selectedMimeType = "audio/webm;codecs=opus";
 
     // Create MediaRecorder with the audio stream from our destination
     mediaRecorder = new MediaRecorder(destination.stream, {
@@ -171,7 +153,9 @@ async function initSoundRecorder() {
     };
 
     mediaRecorder.onstop = () => {
-      recordedAudioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      recordedAudioBlob = new Blob(audioChunks, {
+        type: mediaRecorder.mimeType,
+      });
       console.log("Recording completed, size:", recordedAudioBlob.size);
       updateRecordingStatus("✅ Recording complete!", "success");
       updateRecordingButtonStates();
@@ -1051,9 +1035,9 @@ function setupUIControls() {
 
   // Download button
   if (downloadBtn) {
-    downloadBtn.addEventListener("click", function () {
+    downloadBtn.addEventListener("click", async function () {
       if (recordedAudioBlob) {
-        downloadRecordedAudio();
+        await downloadRecordedAudio();
       } else {
         console.log("No recording available to download");
       }
@@ -1064,33 +1048,6 @@ function setupUIControls() {
   if (clearBtn) {
     clearBtn.addEventListener("click", function () {
       clearRecordedAudio();
-    });
-  }
-
-  // Retry recorder button
-  const retryRecorderBtn = document.getElementById("retry-recorder-btn");
-  if (retryRecorderBtn) {
-    retryRecorderBtn.addEventListener("click", function () {
-      console.log("Manual retry of recorder initialization...");
-      updateRecordingStatus("🔄 Retrying recorder...", "info");
-      initSoundRecorder();
-    });
-  }
-
-  // Test recording button
-  const testRecordingBtn = document.getElementById("test-recording-btn");
-  if (testRecordingBtn) {
-    testRecordingBtn.addEventListener("click", function () {
-      console.log("Testing recording system...");
-      if (window.recordingDestination) {
-        testAudioRouting(
-          new (window.AudioContext || window.webkitAudioContext)(),
-          window.recordingDestination
-        );
-        updateRecordingStatus("🎵 Test tone played", "info");
-      } else {
-        updateRecordingStatus("❌ Recording system not ready", "error");
-      }
     });
   }
 
@@ -1591,7 +1548,7 @@ function playRecordedAudio() {
 }
 
 // Download recorded audio
-function downloadRecordedAudio() {
+async function downloadRecordedAudio() {
   try {
     if (!recordedAudioBlob) {
       console.error("No recorded audio available for download");
@@ -1599,24 +1556,47 @@ function downloadRecordedAudio() {
       return false;
     }
 
-    // Determine file extension based on MIME type
-    let fileExtension = "webm";
-    if (recordedAudioBlob.type.includes("mp4")) {
-      fileExtension = "mp4";
-    } else if (recordedAudioBlob.type.includes("ogg")) {
-      fileExtension = "ogg";
+    // Convert WebM to AudioBuffer
+    const audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
+    const arrayBuffer = await recordedAudioBlob.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    // Create WAV format data
+    const numberOfChannels = audioBuffer.numberOfChannels;
+    const length = audioBuffer.length;
+    const sampleRate = audioBuffer.sampleRate;
+    const wavBuffer = audioContext.createBuffer(
+      numberOfChannels,
+      length,
+      sampleRate
+    );
+
+    // Copy data to new buffer
+    for (let channel = 0; channel < numberOfChannels; channel++) {
+      const nowBuffering = wavBuffer.getChannelData(channel);
+      const channelData = audioBuffer.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        nowBuffering[i] = channelData[i];
+      }
     }
 
+    // Create WAV file
+    const wavBlob = await createWavBlob(
+      wavBuffer.getChannelData(0),
+      sampleRate
+    );
+
     // Create download link
-    const url = URL.createObjectURL(recordedAudioBlob);
+    const url = URL.createObjectURL(wavBlob);
     const link = document.createElement("a");
     link.href = url;
     link.download = `body-music-${new Date()
       .toISOString()
       .slice(0, 19)
-      .replace(/:/g, "-")}.${fileExtension}`;
+      .replace(/:/g, "-")}.wav`;
 
-    console.log(`Saving audio as ${fileExtension} file...`);
+    console.log("Saving audio as WAV file...");
 
     // Trigger download
     document.body.appendChild(link);
@@ -1835,28 +1815,3 @@ window.addEventListener("resize", function () {
     handCanvas.height = videoRect.height;
   }
 });
-
-// Test audio routing with a simple tone
-function testAudioRouting(audioContext, destination) {
-  try {
-    console.log("🎵 Testing audio routing with test tone...");
-
-    // Create a simple oscillator for testing
-    const testOsc = audioContext.createOscillator();
-    const testGain = audioContext.createGain();
-
-    testOsc.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
-    testGain.gain.setValueAtTime(0.1, audioContext.currentTime); // Low volume
-
-    testOsc.connect(testGain);
-    testGain.connect(destination);
-
-    // Play test tone for 1 second
-    testOsc.start(audioContext.currentTime);
-    testOsc.stop(audioContext.currentTime + 1);
-
-    console.log("🎵 Test tone played through recording system");
-  } catch (error) {
-    console.error("Error testing audio routing:", error);
-  }
-}
